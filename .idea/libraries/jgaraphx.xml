@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="jgaraphx">
+    <CLASSES />
+    <JAVADOC>
+      <root url="file://$PROJECT_DIR$/../lib/jgraphx/docs/api" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../lib/jgraphx/examples" />
+      <root url="file://$PROJECT_DIR$/../lib/jgraphx/src" />
+    </SOURCES>
+  </library>
+</component>
