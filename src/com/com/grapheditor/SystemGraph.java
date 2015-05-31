@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.Hashtable;
 
 public class SystemGraph extends JPanel {
-    static mxGraph graph;
+    public static mxGraph graph;
     static mxGraphComponent graphPanel;
     static int X;
     static int Y;

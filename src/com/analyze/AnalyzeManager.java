@@ -1,6 +1,7 @@
 package com.analyze;
 
 import com.com.grapheditor.TaskGraph;
+import com.gant.model.Link;
 import com.mxgraph.model.mxCell;
 import com.mxgraph.view.mxGraph;
 

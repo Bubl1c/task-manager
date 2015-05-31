@@ -2,6 +2,7 @@ package com.gant;
 
 import com.analyze.AnalyzeManager;
 import com.analyze.Task;
+import com.com.grapheditor.SystemGraph;
 import com.com.grapheditor.TaskGraph;
 
 import javax.swing.*;
@@ -9,6 +10,10 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.gant.model.Route;
+import com.gant.model.RoutingModel;
+import com.mxgraph.model.mxGraphModel;
 
 /**
  * Created by Andrii Mozharovskyi on 28.05.2015.
@@ -29,6 +34,8 @@ public class GantDiagram extends JPanel {
         if(minNumberOfNodes > tasks.size()){
             System.out.println(minNumberOfNodes + " nodes needed, but only " + tasks.size() + " exists!");
         }
+        RoutingModel routingModel = new RoutingModel(SystemGraph.graph);
+        int i = 0;
     }
 
     public static int minNumberOfNodes(ArrayList<Task> tasks){

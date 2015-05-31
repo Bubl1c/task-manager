@@ -1,13 +1,15 @@
 package com.analyze;
 
+import com.gant.model.Link;
+
 import java.util.*;
 
 /**
  * Created by Andrew on 08.04.2015.
  */
 public class DirectedAcyclicGraph {
-    public Map<Integer,Task> vertexMap = new HashMap<Integer, Task>();
-    public Map<Integer,Link> edgeMap = new HashMap<Integer, Link>();
+    public Map<Integer,Task> vertexMap = new HashMap<>();
+    public Map<Integer,Link> edgeMap = new HashMap<>();
     public Integer Ncr;
     public Integer Tcr;
     private ArrayList<String> vertexPaths;
@@ -22,7 +24,7 @@ public class DirectedAcyclicGraph {
     }
     
     public ArrayList<Task> getVertexCriticalPathWeights(){
-    	ArrayList<Task> taskList = new ArrayList<Task>();
+    	ArrayList<Task> taskList = new ArrayList<>();
     	Ncr = 0;
     	Tcr = 0;
     	for(Map.Entry<Integer,Task> t : vertexMap.entrySet()){
@@ -42,8 +44,8 @@ public class DirectedAcyclicGraph {
     }
     
     private String getCriticalPath(Integer sourseId){
-    	vertexPaths = new ArrayList<String>();
-    	ArrayList<Integer> pathWeightList =  new ArrayList<Integer>();
+    	vertexPaths = new ArrayList<>();
+    	ArrayList<Integer> pathWeightList =  new ArrayList<>();
         buildPaths(sourseId,"");
         for(String path : vertexPaths){
         	pathWeightList.add(pathWeight(path));
@@ -54,7 +56,7 @@ public class DirectedAcyclicGraph {
     }
     
     private Integer getCriticalPathVertexWeight(Integer sourseId){
-    	ArrayList<Integer> pathWeightList =  new ArrayList<Integer>();
+    	ArrayList<Integer> pathWeightList =  new ArrayList<>();
     	for(String path : vertexPaths){
     		int weight = pathVertexWeight(path);
     		if(weight == -1){
@@ -63,8 +65,7 @@ public class DirectedAcyclicGraph {
     			pathWeightList.add(weight);
     		}  	
         }
-    	Integer maxWeight = Collections.max(pathWeightList);
-    	return maxWeight;
+    	return Collections.max(pathWeightList);
     }
 
     private int pathVertexWeight(String path){
@@ -74,7 +75,7 @@ public class DirectedAcyclicGraph {
     		return -1;
     	}
     	String[] edgeIds = path.split(" ");
-    	Set<Integer> vertexIds = new HashSet<Integer>();
+    	Set<Integer> vertexIds = new HashSet<>();
     	for(int i=0; i<edgeIds.length; i++){
     		Link link = edgeMap.get(Integer.valueOf(edgeIds[i]));
     		vertexIds.add(link.getSourceId());
