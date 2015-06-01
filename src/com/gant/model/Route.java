@@ -41,6 +41,16 @@ public class Route extends Link{
         return this.links.contains(link);
     }
 
+    public boolean containsSourceNode(Integer nodeId) {
+        for(Link link : links){
+            if(link.getSourceId() == nodeId){
+                return true;
+            }
+        }
+        return false;
+    }
+
+
     public LinkedList<Link> getLinks() {
         return links;
     }

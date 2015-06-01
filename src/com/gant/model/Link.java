@@ -86,10 +86,15 @@ public class Link {
         return new Link(saveId ? getId() : getNextId(), getWeight(), getSourceId(), getTargetId(), getCell());
     }
 
+//    @Override
+//	public String toString() {
+//		return "l{id=" + id + ", sourId="
+//				+ sourceId + ", targId=" + targetId + "}";
+//	}
+
     @Override
 	public String toString() {
-		return "l{id=" + id + ", sourId="
-				+ sourceId + ", targId=" + targetId + "}";
+		return " " + /*id + "|" + sourceId + "^" +*/ targetId + " ";
 	}
 
     @Override

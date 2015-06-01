@@ -35,7 +35,6 @@ public class GantDiagram extends JPanel {
             System.out.println(minNumberOfNodes + " nodes needed, but only " + tasks.size() + " exists!");
         }
         RoutingModel routingModel = new RoutingModel(SystemGraph.graph);
-        int i = 0;
     }
 
     public static int minNumberOfNodes(ArrayList<Task> tasks){

@@ -15,10 +15,10 @@ public class RoutingModel {
     public RoutingModel(mxGraph graph) {
         this.model = new CustomGraphModel(graph);
         this.routes = buildRoutes();
-        this.model = assignRoutes(this.model, this.routes);
+        this.model = assignRoutesToNodes(this.model, this.routes);
     }
 
-    private CustomGraphModel assignRoutes(CustomGraphModel model, List<Route> routes){
+    private CustomGraphModel assignRoutesToNodes(CustomGraphModel model, List<Route> routes){
         for(Integer nodeId : model.getNodeIds()){
             Node currentNode = model.get(nodeId);
             if(currentNode != null){
@@ -55,12 +55,13 @@ public class RoutingModel {
 
     private void getAllRoutes(int sourceId, int targetId, int currentNodeId, Route currentRoute, List<Route> routes){
         if(currentNodeId == targetId) {
-            currentRoute.complete();
-            if(!routes.contains(currentRoute)){ routes.add(currentRoute); }
+            routes.remove(currentRoute);
+            routes.add(currentRoute.copy());
+            currentRoute.remove(currentRoute.getLastLink());
             return;
         }
 
-        if(currentNodeId == sourceId){
+        if(currentRoute.containsSourceNode(currentNodeId)){
             routes.remove(currentRoute);
             currentRoute.remove(currentRoute.getLastLink());
             return;
@@ -83,8 +84,6 @@ public class RoutingModel {
                 routes.remove(newRoute);
             }
         }
-        if(!currentRoute.isCompleted()){
-            currentRoute.remove(currentRoute.getLastLink());
-        }
+        currentRoute.remove(currentRoute.getLastLink());
     }
 }
