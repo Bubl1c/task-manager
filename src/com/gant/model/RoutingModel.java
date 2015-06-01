@@ -1,9 +1,12 @@
 package com.gant.model;
 
+import com.com.grapheditor.SystemGraph;
+import com.gant.model.customGraph.CustomGraphModel;
 import com.mxgraph.view.mxGraph;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by Andrii on 31.05.2015.
@@ -13,9 +16,13 @@ public class RoutingModel {
     private List<Route> routes = new ArrayList<>();
 
     public RoutingModel(mxGraph graph) {
-        this.model = new CustomGraphModel(graph);
+        this.model = new CustomGraphModel(graph, SystemGraph.class, false);
         this.routes = buildRoutes();
         this.model = assignRoutesToNodes(this.model, this.routes);
+    }
+
+    public Set<Integer> getNodeIds(){
+        return model.getNodeIds();
     }
 
     private CustomGraphModel assignRoutesToNodes(CustomGraphModel model, List<Route> routes){
@@ -33,7 +40,7 @@ public class RoutingModel {
         return model;
     }
 
-    public List<Route> buildRoutes(){
+    private List<Route> buildRoutes(){
         List<Route> routes = new ArrayList<>();
         for(Integer sourceNodeId : model.getNodeIds()){
             for(Integer targetNodeId : model.getNodeIds()){

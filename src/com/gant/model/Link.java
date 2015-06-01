@@ -13,6 +13,7 @@ public class Link {
     private Integer sourceId;
     private Integer targetId;
     private mxCell cell;
+    private LinkState state;
 
     public Link(Integer weight,Integer sourceId,Integer targetId){
         this.id = getNextId();
@@ -86,7 +87,15 @@ public class Link {
         return new Link(saveId ? getId() : getNextId(), getWeight(), getSourceId(), getTargetId(), getCell());
     }
 
-//    @Override
+    public LinkState getState() {
+        return state;
+    }
+
+    public void setState(LinkState state) {
+        this.state = state;
+    }
+
+    //    @Override
 //	public String toString() {
 //		return "l{id=" + id + ", sourId="
 //				+ sourceId + ", targId=" + targetId + "}";

@@ -5,11 +5,12 @@ package com.analyze;
  */
 public class Task implements Comparable<Task>{
     private Integer id;
-    private Integer weight;
-    private Integer criticalPath;
-    private Integer criticalPathWithVertex;
+    private Integer weight = 0;
+    private Integer criticalPath = 0;
+    private Integer criticalPathWithVertex = 0;
     private double Pr;
     private Integer randomValue;
+    private double weightToOrder;
 
     public Task(Integer id, Integer weight){
         this.id = id;
@@ -44,7 +45,7 @@ public class Task implements Comparable<Task>{
 
     @Override
 	public String toString() {
-		return id +" w="+weight+":" +criticalPath+";"+ criticalPathWithVertex+"|"+ Pr;
+		return id +" ["+weightToOrder+"]";
 	}
 
 	@Override
@@ -78,5 +79,13 @@ public class Task implements Comparable<Task>{
 
     public void setRandomValue(Integer randomValue) {
         this.randomValue = randomValue;
+    }
+
+    public double getWeightToOrder() {
+        return weightToOrder;
+    }
+
+    public void setWeightToOrder(double weightToOrder) {
+        this.weightToOrder = weightToOrder;
     }
 }

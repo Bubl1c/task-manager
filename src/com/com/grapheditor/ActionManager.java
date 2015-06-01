@@ -328,7 +328,7 @@ public class ActionManager {
                     isDigit = false;
                 }
                 if(isDigit && value>=0){
-                    cell.setValue(value);
+                    cell.setValue(value+"");
                     graph.getView().clear(cell, false, false);
                     graph.getView().validate();
                 }

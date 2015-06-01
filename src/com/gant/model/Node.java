@@ -14,6 +14,7 @@ public class Node {
     private List<Link> links = new ArrayList<>();
     private mxCell cell;
     private List<Route> routes = new ArrayList<>();
+    private NodeState state;
 
     public Node() {
     }
@@ -63,6 +64,14 @@ public class Node {
 
     public void setRoutes(List<Route> routes) {
         this.routes = routes;
+    }
+
+    public NodeState getState() {
+        return state;
+    }
+
+    public void setState(NodeState state) {
+        this.state = state;
     }
 
     @Override

@@ -19,6 +19,7 @@ public class DirectedAcyclicGraph {
     		double Pri = task.getCriticalPathWithVertex().doubleValue()/maxTcr + task.getCriticalPath().doubleValue()/maxNcr;
     		Pri = (int)(Pri*100)/100.0;
     		task.setPr(Pri);
+			task.setWeightToOrder(Pri);
     	}
     	return list;
     }
@@ -32,6 +33,7 @@ public class DirectedAcyclicGraph {
     		Task task = t.getValue();
     		task.setCriticalPath(pathWeight(path));
     		task.setCriticalPathWithVertex(getCriticalPathVertexWeight(t.getKey()));
+			task.setWeightToOrder(task.getCriticalPathWithVertex());
     		taskList.add(task);
     		if(Ncr < task.getCriticalPath() ){
     			Ncr = task.getCriticalPath(); 
