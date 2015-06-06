@@ -18,6 +18,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.io.IOException;
 import java.util.Hashtable;
 
@@ -142,6 +143,7 @@ public class TaskGraph extends JPanel {
         taskGraph.add(graphPanel, BorderLayout.CENTER);
 
         buildGraphEnvironment();
+        //ActionManager.openFile(new File("E:\\tasks.mxe"), graph);
     }
 
     public static void buildGraphEnvironment() {

@@ -10,7 +10,7 @@ import java.util.*;
 /**
  * Created by Andrii on 01.06.2015.
  */
-public class TaskModel {
+public class TaskModel{
     private CustomGraphModel model;
     private Map<Integer, TaskState> taskStates;
     private List<Task> defaultTaskQueue;
@@ -21,14 +21,24 @@ public class TaskModel {
         this.defaultTaskQueue = defaultTaskQueue;
     }
 
-    public List<Integer> getChildNodeIds(int nodeId){
+    public List<Integer> getChildTaskIds(int nodeId){
         List<Integer> childNodeIds = new ArrayList<>();
-        for(Link link : model.getLinks()){
+        for(Link link : model.getLinks(nodeId)){
             if(link.getSourceId() == nodeId){
                 childNodeIds.add(link.getTargetId());
             }
         }
         return childNodeIds;
+    }
+
+    public List<Integer> getParentTaskIds(int nodeId){
+        List<Integer> parentNodeIds = new ArrayList<>();
+        for(Link link : model.getLinks(nodeId)){
+            if(link.getTargetId() == nodeId){
+                parentNodeIds.add(link.getSourceId());
+            }
+        }
+        return parentNodeIds;
     }
 
     public Task getTask(Integer taskId){
@@ -69,7 +79,7 @@ public class TaskModel {
     private Map<Integer, TaskState> initTaskStates(CustomGraphModel model){
         Map<Integer, TaskState> taskStates = new HashMap<>();
         for(Integer taskId : model.getNodeIds()){
-            TaskState state = new TaskState(taskId);
+            TaskState state = new TaskState(getTask(taskId));
             taskStates.put(taskId, state);
         }
         return  taskStates;

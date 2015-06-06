@@ -1,5 +1,6 @@
 package com.gant.planner;
 
+import com.analyze.Task;
 import com.gant.planner.Tic;
 
 import java.util.ArrayList;
@@ -17,14 +18,28 @@ public class NodeWorkflow {
         tics = new ArrayList<>();
     }
 
-    public void addTic(Tic tic){
+    public void assignWork(Plannable work, int startTicNumber){
+        int workWeight = work.getWeight();
+        int ticNumber = startTicNumber;
+        while(workWeight > 0){
+            Tic tic = getTic(ticNumber, true);
+            tic.setWork(work);
+            setTic(tic, ticNumber);
+            ticNumber++;
+            workWeight--;
+        }
+    }
+
+    private void addTic(Tic tic){
+        tic.setSequenceNumber(tics.size());
         tics.add(tic);
     }
 
-    public void addTic(Tic tic, int position){
-        for(int in = tics.size(); in <= position; in++){
-            tics.add(new Tic(this));
+    private void setTic(Tic tic, int position){
+        while(tics.size() <= position){
+            addTic(new Tic(this));
         }
+        tic.setSequenceNumber(position);
         tics.set(position, tic);
     }
 
@@ -40,8 +55,24 @@ public class NodeWorkflow {
         return tic;
     }
 
-    public boolean isFree(int ticNumber){
-        Tic tic = getTic(ticNumber);
-        return tic == null ? true : tic.isFree();
+    public Tic getTic(int ticNumber, boolean createNew){
+        if(createNew){
+            Tic tic = getTic(ticNumber);
+            if(tic == null) {
+                tic = new Tic(this);
+                setTic(tic, ticNumber);
+            }
+            return tic;
+        }
+        return getTic(ticNumber);
+    }
+
+    public Integer getNodeId() {
+        return nodeId;
+    }
+
+    @Override
+    public String toString() {
+        return nodeId +" " + tics;
     }
 }

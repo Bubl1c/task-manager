@@ -5,6 +5,7 @@ import com.gant.model.RoutingModel;
 import com.gant.model.TaskModel;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by Andrii on 01.06.2015.
@@ -14,61 +15,62 @@ public class TaskPlanner {
     private RoutingModel routingModel;
 
 
-    private LinkedList<Task> taskQueue;
-    private LinkedList<Task> waitForParentTaskQueue;
+    private Queue<Task> taskQueue;
+    private List<Task> waitForParentTasks;
     private Map<Integer, NodeWorkflow> model;
     private int currentTic = 0;
 
     private final Random r = new Random();
 
-    public TaskPlanner(RoutingModel routingModel, TaskModel taskModel, List<Task> taskQueue) {
+    public TaskPlanner(RoutingModel routingModel, TaskModel taskModel) {
         this.routingModel = routingModel;
         this.taskModel = taskModel;
-        init();
+        initModel();
+        buildDefaultQueue();
+        int i = 0;
     }
 
-    public Map<Integer, NodeWorkflow> assignTasksToNodes(){
-        while(currentTic < 50){
-            currentTic++;
-            while(taskQueue.size() > 0){
-                int nodeId = getMostSuitableNodeId();
-                if(nodeId == -1) {
-                    break;
+    public void assignTasksToNodes(){
+        assignTopTasks();
+        boolean continuePlanningFlag = true;
+        while(continuePlanningFlag){
+            Task task = taskQueue.poll();
+            if(task != null) {
+                if(getMostSuitableFreeNodeId(Task.class) != -1){
+
                 }
-                Task task = taskQueue.remove();
-                for(Integer childTaskId : taskModel.getChildNodeIds(task.getId())){
-                    waitForParentTaskQueue.add(taskModel.getTask(childTaskId));
-                }
-                assignTask(taskQueue.remove(), nodeId);
             }
+            //if()
+            currentTic++;
         }
-        return this.model;
-    }
-
-    private void assignTask(Task task, int nodeId){
-        NodeWorkflow workflow = model.get(nodeId);
-        Tic tic = new Tic(workflow);
-        tic.setTask(task);
-        workflow.addTic(tic, currentTic);
-    }
-
-    private Integer getMostSuitableNodeId(){
-        return getFreeRandomNodeId();
-    }
-
-    private Integer getFreeRandomNodeId(){
-        List<Integer> freeNodeIds = getFreeNodeIds();
-        if(freeNodeIds.size() == 0){
-            return -1;
+        if(currentTic > 800) {
+            throw new RuntimeException("assignTasksToNodes() Fucking cycle!");
         }
-        freeNodeIds.get(r.nextInt(freeNodeIds.size()));
-        return 0;
     }
 
-    private List<Integer> getFreeNodeIds(){
+    private void assignTopTasks(){
+        int mostSuitableNodeId = getMostSuitableFreeNodeId(Task.class);
+        while(mostSuitableNodeId != -1 && taskQueue.size() > 0){
+            Task task = taskQueue.poll();
+            getWorkflow(mostSuitableNodeId).assignWork(task, currentTic);
+            addChildsToWaitForParent(task);
+            mostSuitableNodeId = getMostSuitableFreeNodeId(Task.class);
+        }
+    }
+
+    private Integer getMostSuitableFreeNodeId(Class<? extends Plannable> freeFor){
+        return getFreeRandomNodeId(freeFor);
+    }
+
+    private Integer getFreeRandomNodeId(Class<? extends Plannable> freeFor){
+        List<Integer> freeNodeIds = getFreeNodeIds(freeFor);
+        return freeNodeIds.size() == 0 ? -1 : freeNodeIds.get(r.nextInt(freeNodeIds.size()));
+    }
+
+    private List<Integer> getFreeNodeIds(Class<? extends Plannable> freeFor){
         List<Integer> freeNodeIds = new ArrayList<>();
         for(Map.Entry<Integer, Tic> entry : getTics(currentTic).entrySet()){
-            if(entry.getValue().isFree())
+            if(entry.getValue().isFree(freeFor))
                 freeNodeIds.add(entry.getKey());
         }
         return freeNodeIds;
@@ -76,10 +78,51 @@ public class TaskPlanner {
 
     private Map<Integer, Tic> getTics(int ticNumber){
         Map<Integer, Tic> tics = new HashMap<>();
-        for(Map.Entry<Integer, NodeWorkflow> entry : model.entrySet()){
-            tics.put(entry.getKey(), entry.getValue().getTic(ticNumber));
+        for(NodeWorkflow workflow : getWorkflows()){
+            tics.put(workflow.getNodeId(), workflow.getTic(ticNumber, true));
         }
         return tics;
+    }
+
+    private void addChildsToWaitForParent(Task task){
+        List<Integer> childs = taskModel.getChildTaskIds(task.getId());
+        for(int childId : childs){
+            Task childTask = taskModel.getTask(childId);
+            addToWaitForParent(childTask);
+        }
+    }
+
+    private void addToWaitForParent(Task task){
+        if(!waitForParentTasks.contains(task)){
+            waitForParentTasks.add(task);
+        }
+    }
+
+    private List<NodeWorkflow> getWorkflows(){
+        return model.entrySet().stream().map(Map.Entry::getValue).collect(Collectors.toList());
+    }
+
+    private NodeWorkflow getWorkflow(int nodeId){
+        return model.get(nodeId);
+    }
+
+    private void initModel(){
+        model = new HashMap<>();
+        for(Integer nodeId : routingModel.getNodeIds()){
+            model.put(nodeId, new NodeWorkflow(nodeId));
+        }
+        taskQueue = new PriorityQueue<>(10, new Comparator<Task>() {
+            @Override
+            public int compare(Task o1, Task o2) {
+                if(o1.getPriority() < o2.getPriority()){
+                    return 1;
+                } else if(o1.getPriority() > o2.getPriority()){
+                    return -1;
+                }
+                return 0;
+            }
+        });
+        waitForParentTasks = new ArrayList<>();
     }
 
     private void buildDefaultQueue(){
@@ -91,16 +134,13 @@ public class TaskPlanner {
         }
     }
 
-    private void init(){
-        initModel();
-        buildDefaultQueue();
-    }
-
-    private void initModel(){
-        model = new HashMap<>();
-        taskQueue = new LinkedList<>();
-        for(Integer nodeId : routingModel.getNodeIds()){
-            model.put(nodeId, new NodeWorkflow(nodeId));
+    public String getModelOutput() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Planner Model: \n");
+        for(Map.Entry<Integer, NodeWorkflow> entry : model.entrySet()){
+            sb.append(entry.getValue());
+            sb.append("\n");
         }
+        return sb.toString();
     }
 }

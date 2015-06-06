@@ -249,14 +249,18 @@ public class ActionManager {
         int retVal = fileChooser.showOpenDialog(null);
         if (retVal == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
-            try {
-                String xml = mxUtils.readFile(file.getAbsolutePath());
-                Document document = mxXmlUtils.parseXml(xml);
-                mxCodec codec = new mxCodec(document);
-                Object s = codec.decode(document.getDocumentElement(),graph.getModel());
-            } catch (IOException e1) {
-                e1.printStackTrace();
-            }
+            openFile(file, graph);
+        }
+    }
+
+    public static void openFile(File file, mxGraph graph){
+        try {
+            String xml = mxUtils.readFile(file.getAbsolutePath());
+            Document document = mxXmlUtils.parseXml(xml);
+            mxCodec codec = new mxCodec(document);
+            Object s = codec.decode(document.getDocumentElement(),graph.getModel());
+        } catch (IOException e1) {
+            e1.printStackTrace();
         }
     }
 

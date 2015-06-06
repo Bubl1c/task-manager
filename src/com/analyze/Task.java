@@ -1,20 +1,35 @@
 package com.analyze;
 
+import com.gant.model.TaskState;
+import com.gant.planner.Plannable;
+
 /**
  * Created by Andrew on 31.03.2015.
  */
-public class Task implements Comparable<Task>{
+public class Task implements Comparable<Task>, Plannable {
     private Integer id;
     private Integer weight = 0;
     private Integer criticalPath = 0;
     private Integer criticalPathWithVertex = 0;
     private double Pr;
     private Integer randomValue;
-    private double weightToOrder;
+    private double priority;
+    private int progress;
 
     public Task(Integer id, Integer weight){
         this.id = id;
         this.weight = weight;
+    }
+
+    @Override
+    public boolean processTic(){
+        progress++;
+        return isProcessed() ? true : false;
+    }
+
+    @Override
+    public boolean isProcessed() {
+        return weight == progress;
     }
 
     public Integer getId() {
@@ -41,11 +56,9 @@ public class Task implements Comparable<Task>{
 		this.criticalPathWithVertex = criticalPathWithvertex;
 	}
 
-	
-
     @Override
 	public String toString() {
-		return id +" ["+weightToOrder+"]";
+		return "T" + id;
 	}
 
 	@Override
@@ -81,11 +94,11 @@ public class Task implements Comparable<Task>{
         this.randomValue = randomValue;
     }
 
-    public double getWeightToOrder() {
-        return weightToOrder;
+    public double getPriority() {
+        return priority;
     }
 
-    public void setWeightToOrder(double weightToOrder) {
-        this.weightToOrder = weightToOrder;
+    public void setPriority(double priority) {
+        this.priority = priority;
     }
 }

@@ -90,7 +90,7 @@ public class AnalyzeManager {
                 String[] cellValue = cell.getValue().toString().split(TaskGraph.VERTEX_VALUES_SEPARATOR);
                 Task task = new Task(Integer.parseInt(cellValue[0]), Integer.parseInt(cellValue[1]));
                 task.setRandomValue(r.nextInt(1000));
-                task.setWeightToOrder(task.getRandomValue());
+                task.setPriority(task.getRandomValue());
                 taskQueue.add(task);
             }
         }

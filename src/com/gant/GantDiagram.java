@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.gant.model.TaskModel;
-import com.gant.model.customGraph.CustomGraphModel;
 import com.gant.model.RoutingModel;
 import com.gant.planner.TaskPlanner;
 
@@ -51,9 +50,10 @@ public class GantDiagram extends JPanel {
 //            return;
 //        }
         RoutingModel routingModel = new RoutingModel(SystemGraph.graph);
-        TaskModel tasksModel = new TaskModel(TaskGraph.graph);
-        TaskPlanner planner = new TaskPlanner(routingModel, tasksModel, tasks);
+        TaskModel tasksModel = new TaskModel(TaskGraph.graph, tasks);
+        TaskPlanner planner = new TaskPlanner(routingModel, tasksModel);
         planner.assignTasksToNodes();
+        System.out.println(planner.getModelOutput());
         int i = 1;
     }
 
