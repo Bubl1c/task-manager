@@ -3,10 +3,12 @@ package com.analyze;
 import com.gant.model.TaskState;
 import com.gant.planner.Plannable;
 
+import java.io.Serializable;
+
 /**
  * Created by Andrew on 31.03.2015.
  */
-public class Task implements Comparable<Task>, Plannable {
+public class Task implements Comparable<Task>, Plannable, Serializable {
     private Integer id;
     private Integer weight = 0;
     private Integer criticalPath = 0;

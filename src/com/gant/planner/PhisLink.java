@@ -1,11 +1,16 @@
 package com.gant.planner;
 
+import com.analyze.Task;
 import com.gant.Config;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Andrii on 07.06.2015.
  */
-public class PhisLink {
+public class PhisLink implements Serializable{
     private Transfer transfer;
     private Transfer duplexTransfer;
 
@@ -22,38 +27,27 @@ public class PhisLink {
         this.duplexTransfer = duplexTransfer;
     }
 
-    public boolean isFree(){
-        if(Config.duplex){
-            return duplexTransfer == null;
+    public void processTic(){
+        if(transfer != null){
+            transfer.processTic();
         }
-        return transfer == null && duplexTransfer == null;
+        if(duplexTransfer != null){
+            duplexTransfer.processTic();
+        }
+    }
+
+    public boolean isAnyTransfer(){
+        return transfer != null;
     }
 
     public boolean isFree(Transfer transfer){
-        if(Config.duplex){
-            if(isFree() && isApplicableDuplexTransfer(transfer)){
-                return true;
-            }
+        if(transfer == null){
+            return isFree();
+        }
+        if(isFree() && isApplicableDuplexTransfer(transfer)){
+            return true;
         }
         return false;
-    }
-
-    private boolean isApplicableDuplexTransfer(Transfer transfer){
-        if(this.transfer != null && transfer != null){
-            if(transfer.getSourceNodeId() == this.transfer.getTargetNodeId()
-                    && transfer.getTargetNodeId() == this.transfer.getSourceNodeId()){
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public Transfer getTransfer() {
-        return transfer;
-    }
-
-    public Transfer getDuplexTransfer() {
-        return duplexTransfer;
     }
 
     public boolean setTransfer(Transfer transfer) {
@@ -72,6 +66,44 @@ public class PhisLink {
             return true;
         }
         return false;
+    }
+
+    public boolean isFree(){
+        if(Config.duplex){
+            return duplexTransfer == null;
+        }
+        return transfer == null && duplexTransfer == null;
+    }
+
+    private boolean isApplicableDuplexTransfer(Transfer transfer){
+        if(this.transfer == null) {
+            return true;
+        } else if(transfer != null){
+            if(transfer.getSourceNodeId() == this.transfer.getTargetNodeId()
+                    && transfer.getTargetNodeId() == this.transfer.getSourceNodeId()){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public List<Transfer> findTransfersFor(Task task){
+        List<Transfer> transfers = new ArrayList<>();
+        if(transfer.getTargetTaskId() == task.getId()){
+            transfers.add(transfer);
+        }
+        if(duplexTransfer.getTargetTaskId() == task.getId()){
+            transfers.add(duplexTransfer);
+        }
+        return transfers;
+    }
+
+    public Transfer getTransfer() {
+        return transfer;
+    }
+
+    public Transfer getDuplexTransfer() {
+        return duplexTransfer;
     }
 
     @Override

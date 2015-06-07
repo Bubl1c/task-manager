@@ -143,7 +143,7 @@ public class TaskGraph extends JPanel {
         taskGraph.add(graphPanel, BorderLayout.CENTER);
 
         buildGraphEnvironment();
-        //ActionManager.openFile(new File("E:\\tasks.mxe"), graph);
+        ActionManager.openFile(new File("E:\\tasks.mxe"), graph);
     }
 
     public static void buildGraphEnvironment() {

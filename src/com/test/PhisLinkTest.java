@@ -1,68 +1,60 @@
 package com.test;
 
+import com.gant.Config;
 import com.gant.planner.PhisLink;
-import com.gant.planner.Transfer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
-import java.util.Arrays;
-import java.util.Collection;
 
 import static org.junit.Assert.*;
 
-@RunWith(Parameterized.class)
 public class PhisLinkTest {
-    private PhisLink phisLink;
-
-    static Transfer sendTransfer1 = new Transfer(1,2,9,10,1, Transfer.Type.SEND);
-    static Transfer sendTransfer2 = new Transfer(2,1,9,10,1, Transfer.Type.SEND);
-    static Transfer sendTransfer3 = new Transfer(1,3,9,10,1, Transfer.Type.SEND);
-    static Transfer reseiveTransfer1 = new Transfer(sendTransfer1, true);
-    static Transfer reseiveTransfer2 = new Transfer(sendTransfer2, true);
-    static Transfer reseiveTransfer3 = new Transfer(sendTransfer3, true);
-
-    public PhisLinkTest(PhisLink phisLink) {
-        this.phisLink = phisLink;
-    }
 
     @Before
     public void setUp() throws Exception {
-
+        Config.createCopy();
     }
 
     @After
     public void tearDown() throws Exception {
-
-    }
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        Object[][] data = new Object[][] {
-                { new PhisLink()},
-                { new PhisLink(sendTransfer1, reseiveTransfer2)},
-                { new PhisLink(sendTransfer1, reseiveTransfer1) },
-                { new PhisLink(sendTransfer1, reseiveTransfer3) },
-                { new PhisLink(sendTransfer1) }
-        };
-        return Arrays.asList(data);
+        Config.restoreFromCopy();
     }
 
     @Test
     public void testIsFree() throws Exception {
-        assertTrue(phisLink.isFree());
+        Data d = new Data();
+        assertTrue(d.pLink.phisLink.isFree());
+        assertFalse(d.pLink.phisLinkSend12Receive21.isFree());
+        assertFalse(d.pLink.phisLinkSend12Receive12.isFree());
+        Config.duplex = true;
+        assertTrue(d.pLink.phisLinkSend21.isFree());
+        Config.duplex = false;
+        assertFalse(d.pLink.phisLinkSend21.isFree());
     }
 
     @Test
     public void testIsFreeForTranfer() throws Exception {
-        assertTrue("send 1: ", phisLink.isFree(sendTransfer1));
-        assertTrue("receive 1: ", phisLink.isFree(reseiveTransfer1));
+        Data d = new Data();
+        assertTrue(d.pLink.phisLink.isFree(d.transfer.send12));
+        assertFalse(d.pLink.phisLinkSend12Receive21.isFree(d.transfer.send12));
+        Config.duplex = true;
+        assertTrue(d.pLink.phisLinkSend21.isFree(d.transfer.send12));
+        assertFalse(d.pLink.phisLinkSend21.isFree(d.transfer.send21));
+        Config.duplex = false;
+        assertFalse(d.pLink.phisLinkSend21.isFree(d.transfer.send12));
     }
 
     @Test
     public void testSetTransfer() throws Exception {
-        assertTrue("set send 1: ", phisLink.setTransfer(sendTransfer1));
+        Data d = new Data();
+        PhisLink phisLink = new PhisLink();
+        assertTrue(phisLink.setTransfer(d.transfer.send12));
+        Config.duplex = true;
+        assertFalse(phisLink.setTransfer(d.transfer.send12));
+        assertTrue(phisLink.setTransfer(d.transfer.send21));
+        Config.duplex = false;
+        phisLink = new PhisLink();
+        assertTrue(phisLink.setTransfer(d.transfer.send12));
+        assertFalse(phisLink.setTransfer(d.transfer.send21));
     }
 }

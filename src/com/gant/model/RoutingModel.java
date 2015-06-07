@@ -21,6 +21,10 @@ public class RoutingModel {
         this.model = assignRoutesToNodes(this.model, this.routes);
     }
 
+    public Node get(int nodeId){
+        return model.get(nodeId);
+    }
+
     public Set<Integer> getNodeIds(){
         return model.getNodeIds();
     }

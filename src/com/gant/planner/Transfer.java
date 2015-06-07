@@ -1,9 +1,11 @@
 package com.gant.planner;
 
+import java.io.Serializable;
+
 /**
  * Created by Andrii on 01.06.2015.
  */
-public class Transfer implements Plannable{
+public class Transfer implements Plannable, Serializable{
     private Type type;
     private int linkWeight;
     private int progress;

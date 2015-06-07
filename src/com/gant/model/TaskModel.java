@@ -17,8 +17,48 @@ public class TaskModel{
 
     public TaskModel(mxGraph graph, List<Task> defaultTaskQueue) {
         this.model = new CustomGraphModel(graph, TaskGraph.class, true);
-        taskStates = initTaskStates(this.model);
         this.defaultTaskQueue = defaultTaskQueue;
+        taskStates = initTaskStates(this.model);
+    }
+
+    public List<Task> getJustProcessedTasks(List<Task> notProcessedOnPreviousTic){
+        List<Task> currentTicNotProcessedTasks = getNotProcessedTasks();
+        List<Task> justProcessedTasks = new ArrayList<>();
+        for(Task task : notProcessedOnPreviousTic){
+            if(!currentTicNotProcessedTasks.contains(task)){
+                justProcessedTasks.add(task);
+            }
+        }
+        return justProcessedTasks;
+    }
+
+    public boolean isAnyNotProcessedTask(){
+        return getNotProcessedTasks().size() != 0;
+    }
+
+    public boolean isAnyNotProcessedParent(int taskId){
+        return getNotProcessedParentTasks(taskId).size() != 0;
+    }
+
+    public List<Task> getNotProcessedParentTasks(int taskId){
+        List<Task> notProcessedParentTasks = new ArrayList<>();
+        for(int parentId : getParentTaskIds(taskId)){
+            Task parentTask = getTask(parentId);
+            if(!parentTask.isProcessed()){
+                notProcessedParentTasks.add(parentTask);
+            }
+        }
+        return notProcessedParentTasks;
+    }
+
+    public List<Task> getNotProcessedTasks(){
+        List<Task> tasks = new ArrayList<>();
+        for(Task task : defaultTaskQueue){
+            if(!task.isProcessed()){
+                tasks.add(task);
+            }
+        }
+        return tasks;
     }
 
     public List<Integer> getChildTaskIds(int nodeId){
@@ -52,10 +92,6 @@ public class TaskModel{
         return null;
     }
 
-    public Set<Integer> getTaskIds(){
-        return model.getNodeIds();
-    }
-
     public List<Link> getIncomingLinks(Integer nodeId){
         List<Link> links = model.getLinks(nodeId);
         List<Link> incomingLinks = new ArrayList<>();
@@ -83,6 +119,10 @@ public class TaskModel{
             taskStates.put(taskId, state);
         }
         return  taskStates;
+    }
+
+    public Set<Integer> getTaskIds(){
+        return model.getNodeIds();
     }
 
     public List<Task> getDefaultTaskQueue() {
