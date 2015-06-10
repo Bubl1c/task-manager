@@ -210,7 +210,7 @@ public class GantDiagram extends JPanel {
         JLabel label = new JLabel(icon);
         planpanel.add(label);
 
-        moveToFrame(planpanel, "Діаграма Ганта", 800, 500);
+        moveToFrame(planpanel, "Діаграма Ганта", 800, 600);
     }
 
     public void moveToFrame(Component component, String frameName, int width, int height){

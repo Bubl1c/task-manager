@@ -98,7 +98,7 @@ public class AnalyzeManager {
         Collections.sort(taskQueue, new Comparator<Task>() {
             @Override
             public int compare(Task o1, Task o2) {
-                return o1.getRandomValue() - o2.getRandomValue();
+                return o2.getRandomValue() - o1.getRandomValue();
             }
         });
         return taskQueue;

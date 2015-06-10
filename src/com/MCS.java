@@ -33,7 +33,7 @@ public class MCS{
     public void launchFrame() {
         //init frame
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setPreferredSize(new Dimension(1300, 1024));
+        frame.setPreferredSize(new Dimension(800, 500));
         frame.pack();
         frame.add(tabPane, BorderLayout.CENTER);
         frame.setVisible(true);

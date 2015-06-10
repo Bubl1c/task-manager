@@ -63,7 +63,7 @@ public class Task implements Comparable<Task>, Plannable, Serializable {
 
     @Override
 	public String toString() {
-		return "T" + id;
+		return "T" + id + "["  + getPriority() + "]";
 	}
 
 	@Override

@@ -118,7 +118,10 @@ public class TaskPlanner {
 
         Queue<ObjectWeight> transferWeightsFromParentsToChild = new PriorityQueue<>(ObjectWeight.getComparator());
         for(int parentTaskId : taskModel.getParentTaskIds(childTaskId)){
-            transferWeightsFromParentsToChild.add(new ObjectWeight(taskModel.getLinkBetween(parentTaskId, childTaskId).getWeight(),
+//            int weight = taskModel.getLinkBetween(parentTaskId, childTaskId).getWeight()
+//                    - taskModel.getTask(parentTaskId).getProcessedTicNumber();
+            int weight = taskModel.getTask(parentTaskId).getProcessedTicNumber();
+            transferWeightsFromParentsToChild.add(new ObjectWeight(weight,
                     taskModel.getTask(parentTaskId)));
         }
 
