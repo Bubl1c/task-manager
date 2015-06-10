@@ -103,6 +103,16 @@ public class TaskModel{
         return incomingLinks;
     }
 
+    public Link getLinkBetween(int sourceTaskId, int targetTaskId){
+        List<Link> links = model.getLinks(sourceTaskId);
+        for(Link link : links){
+            if(link.getSourceId() == sourceTaskId && link.getTargetId() == targetTaskId){
+                return link;
+            }
+        }
+        return null;
+    }
+
     public List<Integer> getTopTaskIds(){
         List<Integer> topTaskIds = new ArrayList<>();
         for(Integer taskId : model.getNodeIds()){

@@ -12,12 +12,17 @@ import java.awt.*;
 public class MCS{
     private JFrame frame;
     private JTabbedPane tabPane;
+
+    private GantDiagram gantDiagram;
+
     public MCS(){
         frame = new JFrame("Моделювання");
         tabPane = new JTabbedPane();
         tabPane.add(new TaskGraph(tabPane));
         tabPane.add(new SystemGraph());
-        tabPane.add(new GantDiagram());
+        gantDiagram = new GantDiagram(tabPane);
+        JScrollPane scrollPane = new JScrollPane(gantDiagram);
+        tabPane.add(scrollPane);
         tabPane.setTitleAt(0, "Граф задачі");
         tabPane.setTitleAt(1, "Граф КС");
         tabPane.setTitleAt(2, "Розподіл");
@@ -28,7 +33,7 @@ public class MCS{
     public void launchFrame() {
         //init frame
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setPreferredSize(new Dimension(800, 500));
+        frame.setPreferredSize(new Dimension(1300, 1024));
         frame.pack();
         frame.add(tabPane, BorderLayout.CENTER);
         frame.setVisible(true);
@@ -39,7 +44,7 @@ public class MCS{
 
             public void stateChanged(ChangeEvent e) {
                 if (tabPane.getSelectedIndex() == 2){
-                    GantDiagram.init();
+                    gantDiagram.init();
                 }
             }
         });

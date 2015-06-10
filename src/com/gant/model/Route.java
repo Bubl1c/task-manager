@@ -26,6 +26,10 @@ public class Route extends Link{
         return weight;
     }
 
+    public int size(){
+        return getLinks() != null ? getLinks().size() : 0;
+    }
+
     public static int getNextId(){
         return currentId++;
     }

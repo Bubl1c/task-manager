@@ -2,6 +2,7 @@ package com.analyze;
 
 import com.gant.model.TaskState;
 import com.gant.planner.Plannable;
+import com.gant.planner.Tic;
 
 import java.io.Serializable;
 
@@ -17,6 +18,8 @@ public class Task implements Comparable<Task>, Plannable, Serializable {
     private Integer randomValue;
     private double priority;
     private int progress;
+    private int processedBy;
+    private int processedTicNumber;
 
     public Task(Integer id, Integer weight){
         this.id = id;
@@ -102,5 +105,21 @@ public class Task implements Comparable<Task>, Plannable, Serializable {
 
     public void setPriority(double priority) {
         this.priority = priority;
+    }
+
+    public int getProcessedBy() {
+        return processedBy;
+    }
+
+    public void setProcessedBy(int processedBy) {
+        this.processedBy = processedBy;
+    }
+
+    public int getProcessedTicNumber() {
+        return processedTicNumber;
+    }
+
+    public void setProcessedTicNumber(int processedTicNumber) {
+        this.processedTicNumber = processedTicNumber;
     }
 }

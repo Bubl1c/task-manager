@@ -1,6 +1,8 @@
 package com.gant.planner;
 
 import com.analyze.Task;
+import com.gant.Config;
+import com.gant.GantDiagram;
 import com.gant.model.*;
 
 import java.io.*;
@@ -11,79 +13,252 @@ import java.util.stream.Collectors;
  * Created by Andrii on 01.06.2015.
  */
 public class TaskPlanner {
+    private GantDiagram gantDiagram;
+
     private TaskModel taskModel;
     private RoutingModel routingModel;
 
+    private Map<Integer, Integer> nodesConnectivityOrder;
 
     private Queue<Task> taskQueue;
     private List<Task> waitForParentTasks;
-    private List<Task> notProcessedForPreviousTicTasks;
+
+    private TreeMap<Integer, List<Transfer>> processedTransfers;
+    private TreeMap<Integer, List<Task>> processedTasks;
+
     private Map<Integer, NodeWorkflow> model;
     private int currentTic = 0;
 
     private final Random r = new Random();
 
-    public TaskPlanner(RoutingModel routingModel, TaskModel taskModel) {
+    public TaskPlanner(RoutingModel routingModel, TaskModel taskModel, GantDiagram gantDiagram) {
+        this.gantDiagram = gantDiagram;
+
         this.routingModel = routingModel;
         this.taskModel = taskModel;
         initModel();
         buildDefaultQueue();
+        buildNodesConnectivityOrder();
         int i = 0;
     }
 
     public void processTic(){
-        notProcessedForPreviousTicTasks = taskModel.getNotProcessedTasks();
         processWorkflows();
-        taskQueue.addAll(getReadyToProcessTasks());
+        plan(getReadyToProcessChildsFromJustProcessedTasks());
         currentTic++;
     }
 
-    private void processJustProcessedTasks(){
-        List<Task> justProcessedTasks = taskModel.getJustProcessedTasks(notProcessedForPreviousTicTasks);
-        for(Task justProcessedTask : justProcessedTasks){
-            for(int childTaskId : taskModel.getChildTaskIds(justProcessedTask.getId())){
-                if(taskModel.isAnyNotProcessedParent(childTaskId)){
-                    //Handle problem when need to assign task after all parents finished and send data
+    private void processWorkflows(){
+        List<Plannable> processedWorks = new ArrayList<>();
+        Iterator<NodeWorkflow> it = getWorkflows().iterator();
+        while(it.hasNext()){
+            NodeWorkflow currentWorkflow = it.next();
+            processedWorks.addAll(currentWorkflow.processTic(currentTic));
+        }
+        processedTasks.put(currentTic, getTasksFromWorks(processedWorks));
+        processedTransfers.put(currentTic, getTransfersFromWorks(processedWorks));
+    }
+
+    public void assignTasksToNodes(){
+        assignTopTasks();
+        processTic();
+
+        while(taskModel.isAnyNotProcessedTask()){
+            while(taskQueue.size() > 0 && getMostSuitableFreeNodeId(taskQueue.peek()) != -1){
+                Task task = taskQueue.poll();
+                assignTask(task, getMostSuitableFreeNodeId(task), currentTic);
+            }
+            processTic();
+        }
+    }
+
+    private Queue<Task> getReadyToProcessChildsFromJustProcessedTasks(){
+        Queue<Task> childsOfJustProcessed = createTasksQueue();
+        if(processedTasks.lastEntry() != null){
+            int lastProcessedTicNumber = processedTasks.lastEntry().getKey();
+            List<Task> lastProcessedTasks = processedTasks.lastEntry().getValue();
+            for(Task justProcessedTask : lastProcessedTasks){
+                for(int childTaskId : taskModel.getChildTaskIds(justProcessedTask.getId())){
+                    if(!taskModel.isAnyNotProcessedParent(childTaskId)){
+                        if(!childsOfJustProcessed.contains(taskModel.getTask(childTaskId))){
+                            childsOfJustProcessed.add(taskModel.getTask(childTaskId));
+                        }
+                    }
+                }
+            }
+        }
+        return childsOfJustProcessed;
+    }
+
+    private void plan(Queue<Task> tasks){
+        while(tasks.size() > 0){
+            int currentTaskId = tasks.poll().getId();
+            int currentTicNumber = currentTic + 1;
+            int mostSuitableNodeId = getMostSuitableNodeIdToTransferTo(currentTaskId, currentTicNumber);
+            while (mostSuitableNodeId == -1){
+                mostSuitableNodeId = getMostSuitableNodeIdToTransferTo(currentTaskId, currentTicNumber);
+                if(currentTicNumber - currentTic > 20){
+                    throw new RuntimeException("Too long searching optimal Node for child task!");
+                }
+            }
+            int ticToPlanTask = planTransfersFromParentsToChild(currentTaskId, mostSuitableNodeId);
+
+            currentTicNumber = ticToPlanTask;
+            while (!assignTask(taskModel.getTask(currentTaskId), mostSuitableNodeId, currentTicNumber)) {
+                currentTicNumber++;
+                if(currentTicNumber - ticToPlanTask > 20){
+                    throw new RuntimeException("Too long planning task!");
                 }
             }
         }
     }
 
-    private void planTransfer(){
+    private int planTransfersFromParentsToChild(int childTaskId, int chosenNodeId){
+        List<Integer> lastTicNumbersOfPlannedTransfers = new ArrayList<>();
 
+        Queue<ObjectWeight> transferWeightsFromParentsToChild = new PriorityQueue<>(ObjectWeight.getComparator());
+        for(int parentTaskId : taskModel.getParentTaskIds(childTaskId)){
+            transferWeightsFromParentsToChild.add(new ObjectWeight(taskModel.getLinkBetween(parentTaskId, childTaskId).getWeight(),
+                    taskModel.getTask(parentTaskId)));
+        }
+
+        while(transferWeightsFromParentsToChild.size() > 0){
+            Task currentParentTask = (Task) transferWeightsFromParentsToChild.poll().getObject();
+            int currentLastTicNumber = planTransfer(currentParentTask.getProcessedBy(), chosenNodeId, currentParentTask.getId(), childTaskId,
+                    currentParentTask.getProcessedTicNumber()+1);
+            lastTicNumbersOfPlannedTransfers.add(currentLastTicNumber);
+        }
+        Collections.sort(lastTicNumbersOfPlannedTransfers);
+        return lastTicNumbersOfPlannedTransfers.get(lastTicNumbersOfPlannedTransfers.size() - 1);
     }
 
-    private Route getOptimalRouteFromNodeToNode(int sourceNodeId, int targetNodeId, int startTicNumber){
-        Node sourceNode = routingModel.get(sourceNodeId);
-        TreeMap<Integer, Route> routeWeights = new TreeMap<>();
-        for(Route route : sourceNode.getRoutes()){
-            if(route.getTargetId() == targetNodeId){
-                routeWeights.put(calculateRouteWeightDependingOnCurrentModelState(route, startTicNumber), route);
+    private int planTransfer(int sourceNodeId, int targetNodeId, int sourceTaskId, int targetTaskId, int startTicNumber){
+        Link linkBetweenTasks = taskModel.getLinkBetween(sourceTaskId, targetTaskId);
+        if(linkBetweenTasks == null){
+            throw new RuntimeException("No link between tasks. while planning transfer!");
+        }
+        int weightOfTransfering = linkBetweenTasks.getWeight();
+
+        if(sourceNodeId == targetNodeId){
+            return startTicNumber + getTimeToFree(taskModel.getTask(targetTaskId), sourceNodeId, startTicNumber);
+        }
+
+        Route shortestRoute = getShortestRouteFromNodeToNodeDependingOnCurrentModelState(sourceNodeId, targetNodeId, weightOfTransfering, startTicNumber);
+        int nextTicNumber = startTicNumber;
+        while (shortestRoute == null){
+            shortestRoute = getShortestRouteFromNodeToNodeDependingOnCurrentModelState(sourceNodeId, targetNodeId, weightOfTransfering, nextTicNumber++);
+            if(nextTicNumber - currentTic > 20){
+                throw new RuntimeException("Too long searching route to plan transfer!");
             }
         }
-
-        Map.Entry<Integer, Route> topRouteWeight = routeWeights.lastEntry();
-        if(topRouteWeight.getKey() != -1){
-            return topRouteWeight.getValue();
-        }
-        return null;
+        Transfer transfer = new Transfer(sourceNodeId, targetNodeId, sourceTaskId, targetTaskId, weightOfTransfering, Transfer.Type.SEND);
+        return planTransfer(shortestRoute, transfer, startTicNumber);
     }
 
-    private int calculateRouteWeightDependingOnCurrentModelState(Route route, int startTicNumber){
+    private int planTransfer(Route route, Transfer transfer, int startTicNumber){
+        int currentTicNumber = startTicNumber;
+        for(Link link : route.getLinks()){
+            while(!isTransferPossible(link.getSourceId(), link.getTargetId(), transfer.getWeight(), currentTicNumber)){
+                currentTicNumber++;
+                if(currentTicNumber - startTicNumber > 20){
+                    throw new RuntimeException("Too long planning transfer!");
+                }
+            }
+            Transfer currentTransfer = new Transfer(link.getSourceId(), link.getTargetId(), transfer.getSourceTaskId(),
+                    transfer.getTargetTaskId(), transfer.getWeight(), Transfer.Type.SEND);
+            getWorkflow(link.getSourceId()).assignWork(currentTransfer, currentTicNumber);
+            getWorkflow(link.getTargetId()).assignWork(new Transfer(currentTransfer, true), currentTicNumber);
+            currentTicNumber += transfer.getWeight();
+        }
+        return currentTicNumber;
+    }
+    
+    private Route getShortestRouteFromNodeToNodeDependingOnCurrentModelState(int sourceNodeId, int targetNodeId, int transferWeight, int startTicNumber){
+        PriorityQueue<ObjectWeight> possibleRoutes = new PriorityQueue<>(ObjectWeight.getComparator());
+        for(Route route : routingModel.getRoutesBetween(sourceNodeId, targetNodeId)){
+            int routeWeight = calculateRouteWeightDependingOnCurrentModelState(route, transferWeight, startTicNumber);
+            if(routeWeight != -1){
+                possibleRoutes.add(new ObjectWeight(routeWeight, route));
+            }
+        }
+        return possibleRoutes.peek() != null ? (Route) possibleRoutes.poll().getObject() : null;
+    }
+
+    private int calculateRouteWeightDependingOnCurrentModelState(Route route, int transferWeight, int startTicNumber){
         int routeWeight = 0;
         for(Link link : route.getLinks()){
-            if(isTransferPossible(link.getSourceId(), link.getTargetId(), link.getWeight(), startTicNumber)){
-                routeWeight += link.getWeight();
+            while(!isTransferPossible(link.getSourceId(), link.getTargetId(), transferWeight, routeWeight+startTicNumber)){
+                routeWeight++;
+                if(routeWeight > 200){
+                    throw new RuntimeException("Too long calculating route weight!");
+                }
             }
-            return -1;
+            routeWeight += transferWeight;
         }
         return routeWeight;
+    }
+    
+    private int getMostSuitableNodeIdToTransferTo(int taskId, int ticNumber){
+        if(Config.assignmentType == Config.AssignmentType.NEIGHBOR_5){
+            return getBy5Algorithm(taskId, ticNumber);
+        }
+        return getFreeRandomNodeId(taskModel.getTask(taskId), ticNumber);
+    }
+
+    private int getBy5Algorithm(int taskId, int ticNumber){
+        Queue<ObjectWeight> shortestRoutesFreeNodes = new PriorityQueue<>(ObjectWeight.getComparator());
+        Task task = taskModel.getTask(taskId);
+        for(int freeNodeId : getFreeNodeIds(taskModel.getTask(taskId), ticNumber)){
+            Queue<ObjectWeight> shortestRoutesParents = new PriorityQueue<>(ObjectWeight.getComparator());
+            for(int parentTaskId : taskModel.getParentTaskIds(taskId)){
+                int parentTaskProcessedNodeId = taskModel.getTask(parentTaskId).getProcessedBy();
+                if(parentTaskProcessedNodeId == freeNodeId){
+                    shortestRoutesParents.add(new ObjectWeight(getTimeToFree(task, freeNodeId, ticNumber),
+                            new Route(parentTaskProcessedNodeId, parentTaskProcessedNodeId)));
+                } else {
+                    Route shortestRoute = getShortestRouteFromNodeToNode(parentTaskProcessedNodeId, freeNodeId, ticNumber);
+                    if(shortestRoute != null){
+                        shortestRoutesParents.add(new ObjectWeight(shortestRoute.size() * taskModel.getLinkBetween(parentTaskId,
+                                taskId).getWeight(), shortestRoute));
+                    }
+                }
+            }
+            int sumWeight = 0;
+            for(ObjectWeight objectWeight : shortestRoutesParents){
+                sumWeight += objectWeight.getWeight();
+            }
+            shortestRoutesFreeNodes.add(new ObjectWeight(sumWeight, freeNodeId));
+        }
+        return shortestRoutesFreeNodes.peek() != null ? (Integer) shortestRoutesFreeNodes.peek().getObject() : -1;
+    }
+    
+    private int getTimeToFree(Plannable work, int nodeId, int startTicNumber){
+        NodeWorkflow workflow = getWorkflow(nodeId);
+        int currentTicNumber = startTicNumber;
+        while(!workflow.isFree(work, currentTicNumber)){
+            currentTicNumber++;
+            if(currentTicNumber - startTicNumber > 20){
+                throw new RuntimeException("Too searching time to free!");
+            }
+        }
+        return currentTicNumber - startTicNumber;
+    }
+
+    private Route getShortestRouteFromNodeToNode(int sourceNodeId, int targetNodeId, int startTicNumber){
+        Node sourceNode = routingModel.get(sourceNodeId);
+        Queue<ObjectWeight> routeWeights = new PriorityQueue<>(ObjectWeight.getComparator());
+        for(Route route : sourceNode.getRoutes()){
+            if(route.getTargetId() == targetNodeId){
+                routeWeights.add(new ObjectWeight(route.getLinks().size(), route));
+            }
+        }
+        return routeWeights.peek() != null ? (Route) routeWeights.peek().getObject() : null;
     }
 
     private boolean isTransferPossible(int sourceNodeId, int targetNodeId, int transferWeight, int startTicNumber){
         Transfer transfer = new Transfer(sourceNodeId, targetNodeId, 1, 2, transferWeight, Transfer.Type.SEND);
-        return getWorkflow(sourceNodeId).isFree(transfer, startTicNumber) &&
-                getWorkflow(targetNodeId).isFree(transfer, startTicNumber) ? true : false;
+        return getWorkflow(sourceNodeId).isFree(transfer, startTicNumber)
+                && getWorkflow(targetNodeId).isFree(transfer, startTicNumber);
     }
 
     private List<Task> getReadyToProcessTasks(){
@@ -126,75 +301,42 @@ public class TaskPlanner {
         return true;
     }
 
-    private void processWorkflows(){
-        Iterator<NodeWorkflow> it = getWorkflows().iterator();
-        while(it.hasNext()){
-            it.next().processTic(currentTic);
-        }
-    }
-
-    public void assignTasksToNodes(){
-        assignTopTasks();
-        processTic();
-
-        while(taskModel.isAnyNotProcessedTask()){
-            while(taskQueue.size() > 0 && getMostSuitableFreeNodeId(taskQueue.peek()) != -1){
-                Task task = taskQueue.poll();
-                assignTask(task, getMostSuitableFreeNodeId(task));
-            }
-        }
-//        boolean continuePlanningFlag = true;
-//        while(continuePlanningFlag){
-//            Task task = taskQueue.poll();
-//            if(task != null) {
-//                if(getMostSuitableFreeNodeId(task) != -1){
-//
-//                }
-//            }
-//            //if()
-//            currentTic++;
-//        }
-//        if(currentTic > 800) {
-//            throw new RuntimeException("assignTasksToNodes() Fucking cycle!");
-//        }
-    }
-
     private void assignTopTasks(){
         while(taskQueue.size() > 0 && getMostSuitableFreeNodeId(taskQueue.peek()) != -1){
             Task task = taskQueue.poll();
-            assignTask(task, getMostSuitableFreeNodeId(task));
+            assignTask(task, getMostSuitableFreeNodeId(task), currentTic);
         }
     }
 
-    private void assignTask(Task task, int nodeId){
-        getWorkflow(nodeId).assignWork(task, currentTic);
-        addChildsToWaitForParent(task);
+    private boolean assignTask(Task task, int nodeId, int ticNumber){
+        if(getWorkflow(nodeId).assignWork(task, ticNumber)){
+            addChildsToWaitForParent(task);
+            return true;
+        }
+        return false;
     }
 
     private Integer getMostSuitableFreeNodeId(Plannable work){
-        return getFreeRandomNodeId(work);
+        if(Config.assignmentType == Config.AssignmentType.NEIGHBOR_5) {
+            return getFreeMostConnectiveNodeId(work, currentTic);
+        }
+        return getFreeRandomNodeId(work, currentTic);
     }
 
-    private Integer getFreeRandomNodeId(Plannable work){
-        List<Integer> freeNodeIds = getFreeNodeIds(work);
+    private Integer getFreeMostConnectiveNodeId(Plannable work, int ticNumber){
+        List<Integer> freeNodeIds = getFreeNodeIds(work, ticNumber);
+        Collections.sort(freeNodeIds, new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                return nodesConnectivityOrder.get(o2) - nodesConnectivityOrder.get(o1);
+            }
+        });
+        return freeNodeIds.size() == 0 ? -1 : freeNodeIds.get(0);
+    }
+
+    private Integer getFreeRandomNodeId(Plannable work, int ticNumber){
+        List<Integer> freeNodeIds = getFreeNodeIds(work, ticNumber);
         return freeNodeIds.size() == 0 ? -1 : freeNodeIds.get(r.nextInt(freeNodeIds.size()));
-    }
-
-    private List<Integer> getFreeNodeIds(Plannable work){
-        List<Integer> freeNodeIds = new ArrayList<>();
-        for(Map.Entry<Integer, Tic> entry : getTics(currentTic).entrySet()){
-            if(entry.getValue().isFree(work))
-                freeNodeIds.add(entry.getKey());
-        }
-        return freeNodeIds;
-    }
-
-    private Map<Integer, Tic> getTics(int ticNumber){
-        Map<Integer, Tic> tics = new HashMap<>();
-        for(NodeWorkflow workflow : getWorkflows()){
-            tics.put(workflow.getNodeId(), workflow.getTic(ticNumber, true));
-        }
-        return tics;
     }
 
     private void addChildsToWaitForParent(Task task){
@@ -211,6 +353,43 @@ public class TaskPlanner {
         }
     }
 
+    private List<Task> getTasksFromWorks(List<Plannable> works){
+        List<Task> tasks = new ArrayList<>();
+        for(Plannable work : works){
+            if(work instanceof Task){
+                tasks.add((Task) work);
+            }
+        }
+        return tasks;
+    }
+
+    private List<Transfer> getTransfersFromWorks(List<Plannable> works){
+        List<Transfer> transfers = new ArrayList<>();
+        for(Plannable work : works){
+            if(work instanceof Transfer){
+                transfers.add((Transfer) work);
+            }
+        }
+        return transfers;
+    }
+
+    private List<Integer> getFreeNodeIds(Plannable work, int ticNumber){
+        List<Integer> freeNodeIds = new ArrayList<>();
+        for(NodeWorkflow workflow : getWorkflows()){
+            if(workflow.isFree(work, ticNumber))
+                freeNodeIds.add(workflow.getNodeId());
+        }
+        return freeNodeIds;
+    }
+
+    private Map<Integer, Tic> getTics(int ticNumber){
+        Map<Integer, Tic> tics = new HashMap<>();
+        for(NodeWorkflow workflow : getWorkflows()){
+            tics.put(workflow.getNodeId(), workflow.getTic(ticNumber, true));
+        }
+        return tics;
+    }
+
     private List<NodeWorkflow> getWorkflows(){
         return model.entrySet().stream().map(Map.Entry::getValue).collect(Collectors.toList());
     }
@@ -224,7 +403,17 @@ public class TaskPlanner {
         for(Integer nodeId : routingModel.getNodeIds()){
             model.put(nodeId, new NodeWorkflow(nodeId));
         }
-        taskQueue = new PriorityQueue<>(10, new Comparator<Task>() {
+        taskQueue = createTasksQueue();
+
+        nodesConnectivityOrder = new HashMap<>();
+
+        waitForParentTasks = new ArrayList<>();
+        processedTasks = new TreeMap<>();
+        processedTransfers = new TreeMap<>();
+    }
+
+    private Queue<Task> createTasksQueue(){
+        return new PriorityQueue<>(10, new Comparator<Task>() {
             @Override
             public int compare(Task o1, Task o2) {
                 if(o1.getPriority() < o2.getPriority()){
@@ -232,10 +421,9 @@ public class TaskPlanner {
                 } else if(o1.getPriority() > o2.getPriority()){
                     return -1;
                 }
-                return 0;
+                return o1.getId() - o2.getId();
             }
         });
-        waitForParentTasks = new ArrayList<>();
     }
 
     private void buildDefaultQueue(){
@@ -244,6 +432,27 @@ public class TaskPlanner {
             if(topTaskIds.contains(task.getId())){
                 taskQueue.add(task);
             }
+        }
+    }
+
+    private void buildNodesConnectivityOrder(){
+        Set<Integer> nodeIds = routingModel.getNodeIds();
+        Queue<Node> nodesQueue = new PriorityQueue<>(new Comparator<Node>() {
+            @Override
+            public int compare(Node o1, Node o2) {
+                if((o1.getLinks().size() - o2.getLinks().size()) == 0){
+                    return o2.getId() - o1.getId();
+                }
+                return o1.getLinks().size() - o2.getLinks().size();
+            }
+        });
+        for(int nodeId : nodeIds){
+            nodesQueue.add(routingModel.get(nodeId));
+        }
+        int counter = 0;
+        while(nodesQueue.size() > 0) {
+            nodesConnectivityOrder.put(nodesQueue.poll().getId(), counter);
+            counter++;
         }
     }
 
@@ -256,6 +465,30 @@ public class TaskPlanner {
         }
         return sb.toString();
     }
+
+    public Map<Integer, NodeWorkflow> getModel(){
+        return this.model;
+    }
+
+    public void trimModel(){
+        for(NodeWorkflow workflow : getWorkflows()){
+            workflow.trim();
+        }
+    }
+
+    public int size(){
+        int maxWorkflowSize = 0;
+        for(NodeWorkflow workflow : getWorkflows()){
+            if(maxWorkflowSize < workflow.size()){
+                maxWorkflowSize = workflow.size();
+            }
+        }
+        return maxWorkflowSize;
+    }
+
+    /**
+     * UNUSED METHODS --------------------------------------------------------------------------------------------------
+     */
 
     public static void serializeModel(Map<Integer, NodeWorkflow> map){
         try

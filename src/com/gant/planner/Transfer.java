@@ -130,7 +130,11 @@ public class Transfer implements Plannable, Serializable{
 
     @Override
     public String toString() {
-        return "R{" + sourceNodeId + "-" + targetNodeId +
-                ", " + sourceTaskId + "-" + targetTaskId + '}';
+        if(getType() == Type.SEND){
+            return /*"S" + " " +*/ sourceTaskId + "-" + targetTaskId + " (" + targetNodeId + ")";
+        }
+        return /*"R" + " " +*/ "(" + sourceNodeId + ") " + sourceTaskId + "-" + targetTaskId;
+//        return type + "{" + sourceNodeId + "-" + targetNodeId +
+//                ", " + sourceTaskId + "-" + targetTaskId + '}';
     }
 }

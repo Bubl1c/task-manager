@@ -25,6 +25,17 @@ public class RoutingModel {
         return model.get(nodeId);
     }
 
+    public List<Route> getRoutesBetween(int sourceNodeId, int targetNodeId){
+        List<Route> routes = new ArrayList<>();
+        Node sourceNode = get(sourceNodeId);
+        for(Route route : sourceNode.getRoutes()){
+            if(route.getTargetId() == targetNodeId){
+                routes.add(route);
+            }
+        }
+        return routes;
+    }
+
     public Set<Integer> getNodeIds(){
         return model.getNodeIds();
     }

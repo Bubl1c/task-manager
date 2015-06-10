@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Created by Andrii on 31.05.2015.
  */
-public class Node {
+public class Node implements Comparable<Node> {
     private Integer id;
     private Integer weight;
     private List<Link> links = new ArrayList<>();
@@ -63,6 +63,11 @@ public class Node {
 
     public void setRoutes(List<Route> routes) {
         this.routes = routes;
+    }
+
+    @Override
+    public int compareTo(Node obj) {
+        return links.size() - obj.getLinks().size();
     }
 
     @Override

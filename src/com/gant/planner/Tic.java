@@ -18,20 +18,27 @@ public class Tic implements Serializable{
 
     private Task task;
     private List<PhisLink> phisLinks;
+    private List<Plannable> processedWorks;
 
     public Tic(NodeWorkflow nodeWorkflow) {
         this.nodeWorkflow = nodeWorkflow;
+        processedWorks = new ArrayList<>();
         initPhisLinks();
     }
 
-    public void process(){
-        if(task != null){
-            task.processTic();
+    public List<Plannable> process(){
+        List<Plannable> processed = new ArrayList<>();
+        if(task != null && task.processTic()){
+            task.setProcessedBy(getNodeWorkflow().getNodeId());
+            task.setProcessedTicNumber(sequenceNumber);
+            processed.add(task);
         }
         Iterator<PhisLink> it = phisLinks.iterator();
         while(it.hasNext()){
-            it.next().processTic();
+            processed.addAll(it.next().processTic());
         }
+        this.processedWorks.addAll(processed);
+        return processed;
     }
 
     public boolean isFree(){
@@ -74,7 +81,7 @@ public class Tic implements Serializable{
         return phisLinks.get(getFirstFreePhisLinkIndex(transfer));
     }
 
-    private boolean isAnyTransfer(){
+    public boolean isAnyTransfer(){
         for(int i = 0; i < phisLinks.size(); i++){
             if(phisLinks.get(i).isAnyTransfer()){
                 return true;
@@ -137,11 +144,45 @@ public class Tic implements Serializable{
         return new NodeState(this);
     }
 
+    public List<Plannable> getProcessedWorks() {
+        return processedWorks;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Tic)) return false;
+
+        Tic tic = (Tic) o;
+
+        if (sequenceNumber != tic.sequenceNumber) return false;
+        if (!nodeWorkflow.equals(tic.nodeWorkflow)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = nodeWorkflow.hashCode();
+        result = 31 * result + sequenceNumber;
+        return result;
+    }
+
     private void initPhisLinks(){
         phisLinks = new ArrayList<>(Config.physLinksNumber);
         for(int i = 0; i < Config.physLinksNumber; i++){
             phisLinks.add(new PhisLink());
         }
+    }
+
+    public String toPhisLinksString() {
+        String result = "";
+        for(PhisLink phisLink : phisLinks){
+            if(phisLink.isAnyTransfer()){
+                result += phisLink.toString() + "\n";
+            }
+        }
+        return result;
     }
 
     @Override

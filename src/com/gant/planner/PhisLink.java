@@ -27,13 +27,15 @@ public class PhisLink implements Serializable{
         this.duplexTransfer = duplexTransfer;
     }
 
-    public void processTic(){
-        if(transfer != null){
-            transfer.processTic();
+    public List<Plannable> processTic(){
+        List<Plannable> processed = new ArrayList<>();
+        if(transfer != null && transfer.processTic()){
+            processed.add(transfer);
         }
-        if(duplexTransfer != null){
-            duplexTransfer.processTic();
+        if(duplexTransfer != null && duplexTransfer.processTic()){
+            processed.add(transfer);
         }
+        return processed;
     }
 
     public boolean isAnyTransfer(){
@@ -78,7 +80,7 @@ public class PhisLink implements Serializable{
     private boolean isApplicableDuplexTransfer(Transfer transfer){
         if(this.transfer == null) {
             return true;
-        } else if(transfer != null){
+        } else {
             if(transfer.getSourceNodeId() == this.transfer.getTargetNodeId()
                     && transfer.getTargetNodeId() == this.transfer.getSourceNodeId()){
                 return true;
@@ -108,6 +110,6 @@ public class PhisLink implements Serializable{
 
     @Override
     public String toString() {
-        return "" + (transfer == null ? "" : transfer + " + ") + (duplexTransfer == null ? "" : duplexTransfer);
+        return "" + (transfer == null ? "" : transfer) + (duplexTransfer == null ? "" : " + " + duplexTransfer);
     }
 }
