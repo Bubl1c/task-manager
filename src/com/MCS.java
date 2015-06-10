@@ -40,14 +40,15 @@ public class MCS{
     }
 
     public void bindTabHandlers(JTabbedPane tabPane){
-        tabPane.addChangeListener(new ChangeListener() { //add the Listener
-
-            public void stateChanged(ChangeEvent e) {
-                if (tabPane.getSelectedIndex() == 2){
-                    gantDiagram.init();
-                }
-            }
-        });
+//        tabPane.addChangeListener(new ChangeListener() { //add the Listener
+//
+//            public void stateChanged(ChangeEvent e) {
+//                if (tabPane.getSelectedIndex() == 2){
+//                    //gantDiagram.init();
+//                    gantDiagram.initControls();
+//                }
+//            }
+//        });
     }
 
     public static void main(String[] args) {

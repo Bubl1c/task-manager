@@ -13,10 +13,12 @@ import java.util.List;
  */
 public class NodeWorkflow implements Serializable{
     private Integer nodeId;
+    private int logLinksNumber;
     private ArrayList<Tic> tics;
 
-    public NodeWorkflow(Integer nodeId) {
+    public NodeWorkflow(Integer nodeId, int logLinksNumber) {
         this.nodeId = nodeId;
+        this.logLinksNumber = logLinksNumber;
         tics = new ArrayList<>();
     }
 
@@ -125,9 +127,6 @@ public class NodeWorkflow implements Serializable{
 
         FontMetrics fm = g.getFontMetrics();
         GlyphVector gv = g.getFont().createGlyphVector(fm.getFontRenderContext(), " Processor");
-//        g.drawString(" Processor", (int) ((com.gant.palivo.Config.HEADWIDTH/3 + 2* com.gant.palivo.Config.HEADWIDTH/3)/2 - gv.getVisualBounds().getWidth()/2), (int) (index + com.gant.palivo.Config.HEIGHT/2 + gv.getVisualBounds().getHeight()/2));
-//        g.drawLine(com.gant.palivo.Config.HEADWIDTH/3, index + com.gant.palivo.Config.HEIGHT, com.gant.palivo.Config.HEADWIDTH + width* com.gant.palivo.Config.STEPWIDTH, index + com.gant.palivo.Config.HEIGHT);
-//        g.drawLine(com.gant.palivo.Config.HEADWIDTH, index, com.gant.palivo.Config.HEADWIDTH, index + com.gant.palivo.Config.HEIGHT);
 
         int lineHeight = VC.lineHeight;
         int nodeNamesDataWidth = VC.nodeNamesDataWidth;
@@ -154,60 +153,34 @@ public class NodeWorkflow implements Serializable{
             Tic currentTic = getTic(i);
 
             if(currentTic != null){
-                g.drawString(currentTic.toPhisLinksString(), currentLeftX + md, cellTopY);
+                int counter = 0;
+                for(PhisLink phisLink : currentTic.getPhisLinks()){
+                    g.drawString(phisLink.toString(), currentLeftX + sm, cellTopY + recordHeight*counter);
+                    counter++;
+                }
+                //g.drawString(currentTic.toPhisLinksString(), currentLeftX + md, cellTopY);
 
                 g.setColor(Color.blue);
+
                 String taskString = currentTic.getTask() == null ? "" : currentTic.getTask().toString();
-                g.drawString(taskString, currentLeftX + md, cellTopY + recordHeight*2);
+                g.drawString(taskString, currentLeftX + sm, cellTopY + lineHeight - recordHeight);
 
                 g.setColor(Color.black);
-
             }
 
 
             g.drawLine(currentLeftX, currentTopY, currentLeftX, currentBottomY);
         }
 
-//        for(Data data : proc){
-//            int begin = data.getBeginTime()* com.gant.palivo.Config.STEPWIDTH + com.gant.palivo.Config.HEADWIDTH;
-//            int end = (data.getEndTime() + 1)* com.gant.palivo.Config.STEPWIDTH + com.gant.palivo.Config.HEADWIDTH;
-//
-//            g.setColor(new Color(180, 197, 255));
-//            g.fillRect(begin + 2, index + 2, end - begin - 4, com.gant.palivo.Config.HEIGHT - 4);
-//            g.setColor(Color.BLACK);
-//            g.drawLine(begin, index, begin, index + com.gant.palivo.Config.HEIGHT);
-//            g.drawLine(end, index, end, index + com.gant.palivo.Config.HEIGHT);
-//
-//            fm = g.getFontMetrics ();
-//            gv = g.getFont ().createGlyphVector(fm.getFontRenderContext (), data.getName() );
-//            g.drawString(data.getName(), (int) ((begin + end)/2 - gv.getVisualBounds().getWidth()/2), (int) (index + com.gant.palivo.Config.HEIGHT/2 + gv.getVisualBounds().getHeight()/2));
-//        }
-//
-//        int tmpindex = index + com.gant.palivo.Config.HEIGHT;
-//        for(int i=0; i<channel.length; i++){
-//            int begin = tmpindex;
-//            int end = channel[i].draw(g, tmpindex, width);
-//            tmpindex = end;
-//
-//            fm = g.getFontMetrics();
-//            gv = g.getFont().createGlyphVector(fm.getFontRenderContext(), "Chanal " + (i + 1));
-//            g.drawString("Chanal " + (i + 1), (int) ((com.gant.palivo.Config.HEADWIDTH/3 + 2* com.gant.palivo.Config.HEADWIDTH/3)/2 - gv.getVisualBounds().getWidth()/2), (int) ((begin + end)/2 + gv.getVisualBounds().getHeight()/2));
-//            g.drawLine(com.gant.palivo.Config.HEADWIDTH/3, end, com.gant.palivo.Config.HEADWIDTH + width* com.gant.palivo.Config.STEPWIDTH, end);
-//        }
-//
-//        fm = g.getFontMetrics();
-//        gv = g.getFont().createGlyphVector(fm.getFontRenderContext(), "P" + Integer.toString(proc_number));
-//        g.drawString("P"+Integer.toString(proc_number), (int) (com.gant.palivo.Config.HEADWIDTH/6 - gv.getVisualBounds().getWidth()/2), (int) ((index + tmpindex)/2 + gv.getVisualBounds().getHeight()/2));
-//        g.drawLine(com.gant.palivo.Config.HEADWIDTH/3, index, com.gant.palivo.Config.HEADWIDTH/3, tmpindex);
-//        g.drawLine(0, tmpindex, com.gant.palivo.Config.HEADWIDTH + width* com.gant.palivo.Config.STEPWIDTH, tmpindex);
-
-//        for(int i=0; i<width; i++){
-//            float[] dashPattern = {2.0f, 5.0f};
-//            g2d.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_MITER, 10.0f, dashPattern, 0));
-//            g.drawLine(com.gant.palivo.Config.HEADWIDTH + (i + 1)* com.gant.palivo.Config.STEPWIDTH, index, com.gant.palivo.Config.HEADWIDTH + (i + 1)* com.gant.palivo.Config.STEPWIDTH, index + com.gant.palivo.Config.HEIGHT);
-//        }
-
         return index++;
+    }
+
+    public int getLogLinksNumber() {
+        return logLinksNumber;
+    }
+
+    public void setLogLinksNumber(int logLinksNumber) {
+        this.logLinksNumber = logLinksNumber;
     }
 
     @Override

@@ -6,14 +6,19 @@ import com.com.grapheditor.SystemGraph;
 import com.com.grapheditor.TaskGraph;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.font.GlyphVector;
 import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.List;
 
+import com.gant.model.ObjectWeight;
 import com.gant.model.TaskModel;
 import com.gant.model.RoutingModel;
 import com.gant.planner.NodeWorkflow;
@@ -30,6 +35,14 @@ public class GantDiagram extends JPanel {
     public GantDiagram(JTabbedPane tabPane) {
         model = new HashMap<>();
         this.tabPane = tabPane;
+
+        JButton configButton = new JButton("Config");
+        configButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                initControls();
+            }
+        });
+        add(configButton);
     }
 
     public void init(){
@@ -47,55 +60,113 @@ public class GantDiagram extends JPanel {
             default:
                 tasks = AnalyzeManager.getRandomOrderQueue(TaskGraph.graph);
         }
-//        int minNumberOfNodes = minNumberOfNodes(tasks);
-//        if(minNumberOfNodes == 0) {
-//            System.out.println("No tasks to process!");
-//            return;
-//        }
-//        if(minNumberOfNodes > tasks.size()){
-//            System.out.println(minNumberOfNodes + " nodes needed, but only " + tasks.size() + " exists!");
-//            return;
-//        }
         System.out.println(tasks);
         RoutingModel routingModel = new RoutingModel(SystemGraph.graph);
         TaskModel tasksModel = new TaskModel(TaskGraph.graph, tasks);
         TaskPlanner planner = new TaskPlanner(routingModel, tasksModel, this);
         planner.assignTasksToNodes();
         planner.trimModel();
-        System.out.println(planner.getModelOutput());
-        initControls();
         drawModel(planner, true);
-        int i = 1;
     }
 
     public void initControls(){
-        final DefaultComboBoxModel IOProcessorPresence = new DefaultComboBoxModel();
-        IOProcessorPresence.addElement("+IO");
-        IOProcessorPresence.addElement("-IO");
-        final JComboBox IOProcessorCombo = new JComboBox(IOProcessorPresence);
-        IOProcessorCombo.setSelectedIndex(0);
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setPreferredSize(new Dimension(300, 400));
-        panel.setBackground(Color.blue);
-        panel.add(IOProcessorCombo);
-        JButton showButton = new JButton("Show");
-        showButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                String data = "";
-                if (IOProcessorCombo.getSelectedIndex() != -1) {
-                    if(IOProcessorCombo.getSelectedIndex() == 0){
-                        Config.isIO = true;
-                    } else {
-                        Config.isIO = false;
-                    }
+        JPanel panel = new JPanel();
+        JCheckBox IObox = new JCheckBox("IO Processor");
+        IObox.addItemListener(new ItemListener() {
+            public void itemStateChanged(ItemEvent e) {
+                if(e.getStateChange() == 1) {
+                    Config.isIO = true;
+                } else {
+                    Config.isIO = false;
                 }
             }
         });
-        add(panel);
-        add(showButton);
+
+        JCheckBox duplexBox = new JCheckBox("Duplex");
+        duplexBox.addItemListener(new ItemListener() {
+            public void itemStateChanged(ItemEvent e) {
+                if(e.getStateChange() == 1) {
+                    Config.duplex = true;
+                } else {
+                    Config.duplex = false;
+                }
+            }
+        });
+
+        final DefaultComboBoxModel queueType = new DefaultComboBoxModel();
+        queueType.addElement("Random");
+        queueType.addElement("Critical path");
+        queueType.addElement("Norm crit path");
+        final JComboBox queueTypeCombo = new JComboBox(queueType);
+        queueTypeCombo.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if(queueTypeCombo.getSelectedIndex() == 0) {
+                    Config.queueType = Config.QueueType.RANDOM;
+                } else if(queueTypeCombo.getSelectedIndex() == 1){
+                    Config.queueType = Config.QueueType.CRITICAL;
+                } else {
+                    Config.queueType = Config.QueueType.NORMAL_CRITICAL;
+                }
+            }
+        });
+        queueTypeCombo.setSelectedIndex(2);
+
+        final DefaultComboBoxModel assignmentType = new DefaultComboBoxModel();
+        assignmentType.addElement("Random");
+        assignmentType.addElement("Neighbor 5");
+        final JComboBox assignmentTypeCombo = new JComboBox(assignmentType);
+        assignmentTypeCombo.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if(assignmentTypeCombo.getSelectedIndex() == 0) {
+                    Config.assignmentType = Config.AssignmentType.RANDOM;
+                } else {
+                    Config.assignmentType = Config.AssignmentType.NEIGHBOR_5;
+                }
+            }
+        });
+        assignmentTypeCombo.setSelectedIndex(1);
+
+
+        SpinnerModel model = new SpinnerNumberModel(1, 1, 5, 1);
+        JSpinner spinner = new JSpinner(model);
+        spinner.addChangeListener(new ChangeListener() {
+            public void stateChanged(ChangeEvent e) {
+                JSpinner js = (JSpinner) e.getSource();
+                Config.physLinksNumber = (Integer) js.getValue();
+            }
+        });
+        JLabel phisLinksLabel = new JLabel("Phis links");
+
+        JButton showButton = new JButton("Show");
+        showButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                init();
+            }
+        });
+        panel.add(IObox);
+        panel.add(duplexBox);
+        panel.add(queueTypeCombo);
+        panel.add(assignmentTypeCombo);
+        panel.add(spinner);
+        panel.add(phisLinksLabel);
+
+        panel.add(showButton);
+        moveToFrame(panel, "Налаштування", 700, 80);
     }
 
     public void drawModel(TaskPlanner planner, boolean toFrame){
+        Queue<ObjectWeight> numbersOfLinks = new PriorityQueue<>(ObjectWeight.getReverseComparator());
+        for(Integer nodeId : planner.getModel().keySet()){
+            numbersOfLinks.add(new ObjectWeight(planner.getRoutingModel().get(nodeId).getLinks().size(), nodeId));
+        }
+        int maxLogLinks = numbersOfLinks.peek().getWeight();
+        int rowHeightInParts = maxLogLinks < Config.physLinksNumber ? maxLogLinks : Config.physLinksNumber;
+        VC.lineHeight = VC.recordHeight*rowHeightInParts + VC.recordHeight;
+
+        if(Config.duplex){
+            VC.ticWidth = VC.doubleTicWidth;
+        }
+
         int lineHeight = VC.lineHeight;
         int nodeNamesDataWidth = VC.nodeNamesDataWidth;
         int ticWidth = VC.ticWidth;
@@ -103,7 +174,7 @@ public class GantDiagram extends JPanel {
         int md = VC.space2;
 
         BufferedImage img = new BufferedImage(planner.size()*ticWidth + ticWidth,
-                planner.getModel().values().size()*lineHeight + lineHeight, BufferedImage.TYPE_INT_RGB);
+                planner.getModel().values().size()*lineHeight + lineHeight*2, BufferedImage.TYPE_INT_RGB);
         Graphics g = img.getGraphics();
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, img.getWidth(), img.getHeight());
@@ -115,8 +186,6 @@ public class GantDiagram extends JPanel {
             index++;
         }
 
-
-
         int lastWorkflowBootmLineY = workflows.size() * lineHeight + md;
 
         for (int i = 0; i < planner.size(); i++) {
@@ -126,22 +195,12 @@ public class GantDiagram extends JPanel {
             g.drawString((i+1)+"", cellCenterX, lastWorkflowBootmLineY + md*2);
             g.drawLine(currentLeftX, lastWorkflowBootmLineY, currentLeftX, lastWorkflowBootmLineY + lineHeight);
         }
-//        for(int i=0; i<maxstep; i++){
-//            int x = (int) (processor.Config.HEADWIDTH + (i + 0.5)*processor.Config.STEPWIDTH);
-//            int y = index + processor.Config.HEIGHT/2;
-//
-//            FontMetrics fm = g.getFontMetrics ();
-//            GlyphVector gv = g.getFont ().createGlyphVector(fm.getFontRenderContext (), Integer.toString(i + 1));
-//            g.drawString(Integer.toString(i + 1), (int) (x - gv.getVisualBounds().getWidth()/2), (int) (y + gv.getVisualBounds().getHeight()/2));
-//        }
+
+        lastWorkflowBootmLineY += lineHeight + md*2;
+        g.drawString(planner.getTaskModel().getDefaultTaskQueue().toString(), md, lastWorkflowBootmLineY);
+
         JPanel planpanel = new JPanel();
-//        planpanel.setSize(new Dimension(img.getWidth(), index + processor.Config.HEIGHT));
-//        planpanel.setMinimumSize(new Dimension(img.getWidth(), index + processor.Config.HEIGHT));
-//        planpanel.setMaximumSize(new Dimension(img.getWidth(), index + processor.Config.HEIGHT));
-//        planpanel.setPreferredSize(new Dimension(img.getWidth(), index + processor.Config.HEIGHT));
-
         int height = planner.getModel().values().size() + 1000;
-
         planpanel.setSize(new Dimension(img.getWidth(), height));
         planpanel.setMinimumSize(new Dimension(img.getWidth(), height));
         planpanel.setMaximumSize(new Dimension(img.getWidth(), height));
@@ -150,26 +209,21 @@ public class GantDiagram extends JPanel {
         ImageIcon icon = new ImageIcon(img);
         JLabel label = new JLabel(icon);
         planpanel.add(label);
-        try {
-            remove(0);
-        } catch (Exception e){}
-        if(!toFrame){
-            add(label);
-        } else {
-            moveToFrame(planpanel);
-        }
+
+        moveToFrame(planpanel, "Діаграма Ганта", 800, 500);
     }
 
-    public void moveToFrame(Component component){
-        JFrame frame = new JFrame("Діаграма Ганта");
+    public void moveToFrame(Component component, String frameName, int width, int height){
+        JFrame frame = new JFrame(frameName);
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setPreferredSize(new Dimension(800, 500));
+        frame.setPreferredSize(new Dimension(width, height));
         frame.pack();
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
         JScrollPane scrollPane = new JScrollPane(component);
         panel.add(scrollPane, BorderLayout.CENTER);
         frame.setContentPane(panel);
+        frame.enableInputMethods(true);
         frame.setVisible(true);
     }
 

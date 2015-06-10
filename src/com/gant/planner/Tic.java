@@ -148,6 +148,10 @@ public class Tic implements Serializable{
         return processedWorks;
     }
 
+    public List<PhisLink> getPhisLinks() {
+        return phisLinks;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -169,8 +173,9 @@ public class Tic implements Serializable{
     }
 
     private void initPhisLinks(){
-        phisLinks = new ArrayList<>(Config.physLinksNumber);
-        for(int i = 0; i < Config.physLinksNumber; i++){
+        phisLinks = new ArrayList<>();
+        for(int i = 0; i < (nodeWorkflow.getLogLinksNumber() < Config.physLinksNumber
+                ? nodeWorkflow.getLogLinksNumber() : Config.physLinksNumber); i++){
             phisLinks.add(new PhisLink());
         }
     }

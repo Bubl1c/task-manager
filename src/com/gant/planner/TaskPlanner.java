@@ -401,7 +401,7 @@ public class TaskPlanner {
     private void initModel(){
         model = new HashMap<>();
         for(Integer nodeId : routingModel.getNodeIds()){
-            model.put(nodeId, new NodeWorkflow(nodeId));
+            model.put(nodeId, new NodeWorkflow(nodeId, routingModel.get(nodeId).getLinks().size()));
         }
         taskQueue = createTasksQueue();
 
@@ -484,6 +484,14 @@ public class TaskPlanner {
             }
         }
         return maxWorkflowSize;
+    }
+
+    public RoutingModel getRoutingModel() {
+        return routingModel;
+    }
+
+    public TaskModel getTaskModel() {
+        return taskModel;
     }
 
     /**

@@ -47,7 +47,7 @@ public class TaskGraph extends JPanel {
         JMenuItem queueRandimItem;
         popupPanel.add(taskItem = new JMenuItem("Додати задачу"));
         popupPanel.addSeparator();
-        popupPanel.add(openItem = new JMenuItem("Выдкрити файл"));
+        popupPanel.add(openItem = new JMenuItem("Відкрити файл"));
         popupPanel.addSeparator();
         popupPanel.add(saveItem = new JMenuItem("Зберегти у файл"));
         popupPanel.addSeparator();
@@ -143,7 +143,7 @@ public class TaskGraph extends JPanel {
         taskGraph.add(graphPanel, BorderLayout.CENTER);
 
         buildGraphEnvironment();
-        ActionManager.openFile(new File("E:\\tasks.mxe"), graph);
+        //ActionManager.openFile(new File("E:\\tasks.mxe"), graph);
     }
 
     public static void buildGraphEnvironment() {

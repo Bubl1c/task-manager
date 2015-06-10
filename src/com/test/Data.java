@@ -57,11 +57,11 @@ public class Data {
     }
 
     public class NodeWorkflowData {
-        public NodeWorkflow for1node = new NodeWorkflow(1);
-        public NodeWorkflow taskAtStart = new NodeWorkflow(1);
-        public NodeWorkflow taskAt7thTic = new NodeWorkflow(1);
-        public NodeWorkflow send12At7thTic = new NodeWorkflow(1);
-        public NodeWorkflow taskAt7thSend12At9thTic = new NodeWorkflow(1);
+        public NodeWorkflow for1node = new NodeWorkflow(1, 1);
+        public NodeWorkflow taskAtStart = new NodeWorkflow(1, 1);
+        public NodeWorkflow taskAt7thTic = new NodeWorkflow(1, 1);
+        public NodeWorkflow send12At7thTic = new NodeWorkflow(1, 1);
+        public NodeWorkflow taskAt7thSend12At9thTic = new NodeWorkflow(1, 1);
 
         public NodeWorkflowData() {
             taskAtStart.assignWork(task.w1,0);

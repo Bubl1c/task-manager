@@ -31,6 +31,15 @@ public class ObjectWeight implements Comparable<ObjectWeight> {
         };
     }
 
+    public static Comparator<ObjectWeight> getReverseComparator(){
+        return new Comparator<ObjectWeight>() {
+            @Override
+            public int compare(ObjectWeight o1, ObjectWeight o2) {
+                return o2.getWeight() - o1.getWeight();
+            }
+        };
+    }
+
     @Override
     public int compareTo(ObjectWeight o) {
         return getWeight() - o.getWeight();
