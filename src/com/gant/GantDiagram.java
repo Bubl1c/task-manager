@@ -47,6 +47,10 @@ public class GantDiagram extends JPanel {
     }
 
     public void init(){
+        drawModel(generate(), true);
+    }
+
+    public static TaskPlanner generate(){
         List<Task> tasks = new ArrayList<>();
         switch(Config.queueType) {
             case CRITICAL:
@@ -61,13 +65,10 @@ public class GantDiagram extends JPanel {
             default:
                 tasks = AnalyzeManager.getRandomOrderQueue(TaskGraph.graph);
         }
-        System.out.println(tasks);
         RoutingModel routingModel = new RoutingModel(SystemGraph.graph);
         TaskModel tasksModel = new TaskModel(TaskGraph.graph, tasks);
-        TaskPlanner planner = new TaskPlanner(routingModel, tasksModel, this);
-        planner.assignTasksToNodes();
-        planner.trimModel();
-        drawModel(planner, true);
+        TaskPlanner planner = new TaskPlanner(routingModel, tasksModel);
+        return planner;
     }
 
     public void initModelling(){

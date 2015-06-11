@@ -105,6 +105,69 @@ public class ActionManager {
         taskGraph.graph = graph;
     }
 
+    public static mxGraph generateGraph(int min, int max, int count, double connectivity){
+        Random rand = new Random();
+
+        mxGraph graph = new mxGraph();
+        graph.getModel().beginUpdate();
+
+        int sumaWi = 0;
+        ArrayList<mxCell> vertexWeightsList = new ArrayList<mxCell>();
+        for(int i=0; i<count; i++){
+            int randValue = rand.nextInt(max+1);
+            if( randValue < min ){ randValue=min; }
+            sumaWi += randValue;
+            mxCell cell = (mxCell)graph.insertVertex(graph.getDefaultParent(), null, "", 0, 0, 50,50,"TASK_CELL_STYLE");
+            cell.setValue((Integer.parseInt(cell.getId())-1)+TaskGraph.VERTEX_VALUES_SEPARATOR+randValue);
+            vertexWeightsList.add(cell);
+        }
+
+        double sumaLi = sumaWi/connectivity - sumaWi;
+        int ELi = (int)Math.round(sumaLi);
+        int maxLi = 1;
+        if(ELi < 4){
+            maxLi = ELi;
+        }else{
+            maxLi = ELi/3;
+        }
+        int minLi = 1;
+        ArrayList<Integer> edgeList = new ArrayList<Integer>();
+        while(ELi>0){
+            int Li = rand.nextInt(maxLi) + 1;
+            if(Li <= ELi){
+                ELi -= Li;
+                edgeList.add(Li);
+            }else{
+                edgeList.add(minLi);
+            }
+        }
+
+        while(edgeList.size() > 0){
+            Integer edgeWeight = edgeList.get(0);
+            int sourceIndex = rand.nextInt(vertexWeightsList.size());
+            int targetIndex = rand.nextInt(vertexWeightsList.size());
+            if(sourceIndex == targetIndex){
+                continue;
+            }
+            if(hasLink(graph,vertexWeightsList.get(sourceIndex),vertexWeightsList.get(targetIndex))){
+                edgeList.remove(0);
+                mxCell tmpEdge = (mxCell) graph.getEdgesBetween(vertexWeightsList.get(sourceIndex), vertexWeightsList.get(targetIndex))[0];
+                tmpEdge.setValue(""+(Integer.parseInt(tmpEdge.getValue().toString())+edgeWeight));
+                continue;
+            }
+            Object edge = graph.insertEdge(graph.getDefaultParent(), null, edgeWeight, vertexWeightsList.get(sourceIndex), vertexWeightsList.get(targetIndex));
+            if(hasCycle(graph)){
+                graph.getModel().remove(edge);
+                continue;
+            }
+            edgeList.remove(0);
+        }
+        mxHierarchicalLayout layout = new mxHierarchicalLayout(graph, SwingConstants.NORTH);
+        layout.execute(graph.getDefaultParent());
+        graph.getModel().endUpdate();
+        return graph;
+    }
+
     private static boolean hasLink(mxGraph graph,mxCell source, mxCell target){
         Object[]links = graph.getEdgesBetween(source,target);
         if(links.length==0){

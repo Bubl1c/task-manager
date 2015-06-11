@@ -2,7 +2,6 @@ package com.gant.planner;
 
 import com.analyze.Task;
 import com.gant.Config;
-import com.gant.GantDiagram;
 import com.gant.model.*;
 
 import java.io.*;
@@ -13,7 +12,6 @@ import java.util.stream.Collectors;
  * Created by Andrii on 01.06.2015.
  */
 public class TaskPlanner {
-    private GantDiagram gantDiagram;
 
     private TaskModel taskModel;
     private RoutingModel routingModel;
@@ -31,15 +29,14 @@ public class TaskPlanner {
 
     private final Random r = new Random();
 
-    public TaskPlanner(RoutingModel routingModel, TaskModel taskModel, GantDiagram gantDiagram) {
-        this.gantDiagram = gantDiagram;
+    public TaskPlanner(RoutingModel routingModel, TaskModel taskModel) {
 
         this.routingModel = routingModel;
         this.taskModel = taskModel;
         initModel();
         buildDefaultQueue();
         buildNodesConnectivityOrder();
-        int i = 0;
+        assignTasksToNodes();
     }
 
     public void processTic(){
@@ -70,6 +67,7 @@ public class TaskPlanner {
             }
             processTic();
         }
+        trimModel();
     }
 
     private Queue<Task> getReadyToProcessChildsFromJustProcessedTasks(){
