@@ -24,6 +24,7 @@ import com.gant.model.RoutingModel;
 import com.gant.planner.NodeWorkflow;
 import com.gant.planner.TaskPlanner;
 import com.gant.planner.VC;
+import com.modeling.PlanningType;
 
 /**
  * Created by Andrii Mozharovskyi on 28.05.2015.
@@ -67,6 +68,11 @@ public class GantDiagram extends JPanel {
         planner.assignTasksToNodes();
         planner.trimModel();
         drawModel(planner, true);
+    }
+
+    public void initModelling(){
+        int numberOfPlanningTypes = 6;
+        List<PlanningType> planningTypes = new ArrayList<>();
     }
 
     public void initControls(){
