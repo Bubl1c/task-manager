@@ -94,8 +94,9 @@ public class TaskPlanner {
             int currentTicNumber = currentTic + 1;
             int mostSuitableNodeId = getMostSuitableNodeIdToTransferTo(currentTaskId, currentTicNumber);
             while (mostSuitableNodeId == -1){
+                currentTicNumber++;
                 mostSuitableNodeId = getMostSuitableNodeIdToTransferTo(currentTaskId, currentTicNumber);
-                if(currentTicNumber - currentTic > 20){
+                if(currentTicNumber - currentTic > 10000){
                     throw new RuntimeException("Too long searching optimal Node for child task!");
                 }
             }
@@ -104,7 +105,7 @@ public class TaskPlanner {
             currentTicNumber = ticToPlanTask;
             while (!assignTask(taskModel.getTask(currentTaskId), mostSuitableNodeId, currentTicNumber)) {
                 currentTicNumber++;
-                if(currentTicNumber - ticToPlanTask > 20){
+                if(currentTicNumber - ticToPlanTask > 10000){
                     throw new RuntimeException("Too long planning task!");
                 }
             }
@@ -148,7 +149,7 @@ public class TaskPlanner {
         int nextTicNumber = startTicNumber;
         while (shortestRoute == null){
             shortestRoute = getShortestRouteFromNodeToNodeDependingOnCurrentModelState(sourceNodeId, targetNodeId, weightOfTransfering, nextTicNumber++);
-            if(nextTicNumber - currentTic > 20){
+            if(nextTicNumber - currentTic > 10000){
                 throw new RuntimeException("Too long searching route to plan transfer!");
             }
         }
@@ -161,7 +162,7 @@ public class TaskPlanner {
         for(Link link : route.getLinks()){
             while(!isTransferPossible(link.getSourceId(), link.getTargetId(), transfer.getWeight(), currentTicNumber)){
                 currentTicNumber++;
-                if(currentTicNumber - startTicNumber > 20){
+                if(currentTicNumber - startTicNumber > 10000){
                     throw new RuntimeException("Too long planning transfer!");
                 }
             }
@@ -172,6 +173,15 @@ public class TaskPlanner {
             currentTicNumber += transfer.getWeight();
         }
         return currentTicNumber;
+    }
+
+    public int getTimeToProcessTasksOn1CPU(){
+        List<Task> tasks = taskModel.getDefaultTaskQueue();
+        int time = 0;
+        for(Task task : tasks){
+            time += task.getWeight();
+        }
+        return time;
     }
     
     private Route getShortestRouteFromNodeToNodeDependingOnCurrentModelState(int sourceNodeId, int targetNodeId, int transferWeight, int startTicNumber){
@@ -190,7 +200,7 @@ public class TaskPlanner {
         for(Link link : route.getLinks()){
             while(!isTransferPossible(link.getSourceId(), link.getTargetId(), transferWeight, routeWeight+startTicNumber)){
                 routeWeight++;
-                if(routeWeight > 200){
+                if(routeWeight > 10000){
                     throw new RuntimeException("Too long calculating route weight!");
                 }
             }
@@ -238,7 +248,7 @@ public class TaskPlanner {
         int currentTicNumber = startTicNumber;
         while(!workflow.isFree(work, currentTicNumber)){
             currentTicNumber++;
-            if(currentTicNumber - startTicNumber > 20){
+            if(currentTicNumber - startTicNumber > 500){
                 throw new RuntimeException("Too searching time to free!");
             }
         }

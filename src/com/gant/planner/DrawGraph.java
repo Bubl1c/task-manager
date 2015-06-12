@@ -20,53 +20,26 @@ public class DrawGraph extends JPanel {
     private static final Stroke GRAPH_STROKE = new BasicStroke(1f);
     private static final int GRAPH_POINT_WIDTH = 2;
 
-    private static double MAX_SCORE = 5;
-    private static int DATA_POINTS_X = 20;
-    private static int Y_HATCH_CNT = 20;
+    private double MAX_SCORE = 5;
+    private int DATA_POINTS_X = 20;
+    private int Y_HATCH_CNT = 20;
 
     public static final int SM = 10;
     public static final int MD = 15;
 
     Map<Object, Map<Object, Double>> scores;
+    String header;
 
-    public DrawGraph(Map<Object, Map<Object, Double>> scores, int y_max) {
+    public DrawGraph(Map<Object, Map<Object, Double>> scores, int y_max, String header) {
         this.scores = scores;
+        this.header = header;
         for(Map.Entry<Object, Map<Object, Double>> entry : scores.entrySet()){
             DATA_POINTS_X = entry.getValue().keySet().size();
-            MAX_SCORE = y_max;
+            double max = max(scores);
+            MAX_SCORE = y_max > max ? y_max : max*1.5;
             break;
         }
         System.out.println("MAXXXX: " + max(scores));
-    }
-
-    private Set getXAxesValues(){
-        for(Map.Entry<Object, Map<Object, Double>> entry : scores.entrySet()){
-            Set set = new TreeSet<>(entry.getValue().keySet());
-            return set;
-        }
-        return null;
-    }
-
-    private Collection getYAxesValues(){
-        for(Map.Entry<Object, Map<Object, Double>> entry : scores.entrySet()){
-            Set set = new TreeSet<>(entry.getValue().values());
-            return set;
-        }
-        return null;
-    }
-
-    public Double max(Map<Object, Map<Object, Double>> scores){
-        List<Double> maxValues = new ArrayList<>();
-        for(Map.Entry<Object, Map<Object, Double>> entry : scores.entrySet()){
-            List list = new ArrayList(entry.getValue().values());
-            maxValues.add(max(list));
-        }
-        return max(maxValues);
-    }
-
-    public Double max(List<Double> scores){
-        Collections.sort(scores);
-        return scores.get(scores.size()-1);
     }
 
     @Override
@@ -78,18 +51,20 @@ public class DrawGraph extends JPanel {
         double xScale = ((double) getWidth() - 2 * BORDER_GAP) / (DATA_POINTS_X - 1);
         double yScale = ((double) getHeight() - BORDER_GAP) / (MAX_SCORE);
 
+        drawHeader(g2, header);
+
         int i = 1;
         drawAxes(g2);
         for (Map.Entry<Object, Map<Object, Double>> entry : scores.entrySet()) {
             List list = new ArrayList(entry.getValue().values());
             Color lineColor = getColor(i);
-            drawLine(g2, list, xScale, yScale, lineColor, i);
+            drawLine(g2, list, xScale, yScale, lineColor);
             drawLineLabel(g2, entry.getKey().toString(), lineColor, i);
             i++;
         }
     }
 
-    private void drawLine(Graphics2D g2, List<Double> scores, double xScale, double yScale, Color color, int index){
+    private void drawLine(Graphics2D g2, List<Double> scores, double xScale, double yScale, Color color){
         System.out.println(scores);
 
         List<Point2D> graphPoints = new ArrayList<Point2D>();
@@ -133,6 +108,18 @@ public class DrawGraph extends JPanel {
         g2.setColor(color);
         g2.setFont(new Font("TimesRoman", Font.BOLD, 14));
         g2.drawString(label, BORDER_GAP + SM, index*MD + BORDER_GAP);
+
+        g2.setColor(oldColor);
+        g2.setFont(oldFont);
+    }
+
+    private void drawHeader(Graphics2D g2, String header){
+        Font oldFont = g2.getFont();
+        Color oldColor = g2.getColor();
+
+        g2.setColor(Color.RED);
+        g2.setFont(new Font("TimesRoman", Font.BOLD, 16));
+        g2.drawString(header, getWidth()/2 - header.length()/2, MD + BORDER_GAP);
 
         g2.setColor(oldColor);
         g2.setFont(oldFont);
@@ -182,7 +169,7 @@ public class DrawGraph extends JPanel {
             int y1 = y0;
             g2.drawLine(x0, y0, x1, y1);
             String currentStr = (MAX_SCORE/Y_HATCH_CNT*i+"");
-            currentStr = currentStr.substring(0, currentStr.length() <= 3 ? currentStr.length() : 3);
+            currentStr = currentStr.substring(0, currentStr.length() <= 4 ? currentStr.length() : 4);
             g2.drawString(currentStr, x0 - MD*2, y0);
         }
 
@@ -194,7 +181,9 @@ public class DrawGraph extends JPanel {
             int y0 = getHeight() - BORDER_GAP;
             int y1 = /*y0 - GRAPH_POINT_WIDTH*/ BORDER_GAP;
             g2.drawLine(x0, y0, x1, y1);
-            g2.drawString(o.toString(), x0, y0 + MD);
+            String currentStr = o.toString();
+            currentStr = currentStr.substring(0, currentStr.length() <= 3 ? currentStr.length() : 3);
+            g2.drawString(currentStr, x0, y0 + MD);
             i++;
         }
 
@@ -202,46 +191,38 @@ public class DrawGraph extends JPanel {
         g2.setStroke(oldStroke);
     }
 
+
+    private Set getXAxesValues(){
+        for(Map.Entry<Object, Map<Object, Double>> entry : scores.entrySet()){
+            Set set = new TreeSet<>(entry.getValue().keySet());
+            return set;
+        }
+        return null;
+    }
+
+    private Collection getYAxesValues(){
+        for(Map.Entry<Object, Map<Object, Double>> entry : scores.entrySet()){
+            Set set = new TreeSet<>(entry.getValue().values());
+            return set;
+        }
+        return null;
+    }
+
+    public static Double max(Map<Object, Map<Object, Double>> scores){
+        List<Double> maxValues = new ArrayList<>();
+        for(Map.Entry<Object, Map<Object, Double>> entry : scores.entrySet()){
+            List list = new ArrayList(entry.getValue().values());
+            maxValues.add(max(list));
+        }
+        return max(maxValues);
+    }
+
+    public static Double max(List<Double> scores){
+        Collections.sort(scores);
+        return scores.get(scores.size()-1);
+    }
     @Override
     public Dimension getPreferredSize() {
         return new Dimension(PREF_W, PREF_H);
-    }
-}
-
-class Main {
-
-    private static Map<Object, Double> getData(int size, double max){
-
-        Random random = new Random();
-        Map<Object, Double> dscores = new TreeMap<>();
-
-        for (int i = 0; i < size; i++) {
-            dscores.put(i, random.nextDouble() /** random.nextInt((int) max)*/);
-        }
-        return dscores;
-    }
-
-    private static void createAndShowGui() {
-        Map<Object, Map<Object, Double>> scores = new TreeMap<>();
-        for (int i = 0; i < 6; i++) {
-            scores.put("line " + (i + 1) + "+", getData(20, 40));
-        }
-        DrawGraph mainPanel = new DrawGraph(scores, 1);
-        mainPanel.setBackground(Color.white);
-
-        JFrame frame = new JFrame("DrawGraph");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.getContentPane().add(mainPanel);
-        frame.pack();
-        frame.setLocationByPlatform(true);
-        frame.setVisible(true);
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                createAndShowGui();
-            }
-        });
     }
 }

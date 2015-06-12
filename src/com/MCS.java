@@ -29,6 +29,8 @@ public class MCS{
         tabPane.setBackground(Color.LIGHT_GRAY);
         tabPane.setTabPlacement(JTabbedPane.LEFT);
         bindTabHandlers(tabPane);
+
+        tabPane.setSelectedIndex(tabPane.getTabCount()-1);
     }
     public void launchFrame() {
         //init frame

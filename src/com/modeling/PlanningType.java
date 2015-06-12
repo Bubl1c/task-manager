@@ -14,4 +14,9 @@ public class PlanningType {
         this.queueType = queueType;
         this.assignmentType = assignmentType;
     }
+
+    @Override
+    public String toString() {
+        return queueType.getId() + GatherDataModel.PL_TYPE_SPLIT_SYMBOL + assignmentType.getId();
+    }
 }

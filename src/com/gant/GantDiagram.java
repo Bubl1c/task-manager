@@ -21,10 +21,15 @@ import java.util.List;
 import com.gant.model.ObjectWeight;
 import com.gant.model.TaskModel;
 import com.gant.model.RoutingModel;
+import com.gant.planner.DrawGraph;
 import com.gant.planner.NodeWorkflow;
 import com.gant.planner.TaskPlanner;
 import com.gant.planner.VC;
+import com.modeling.DrawTable;
+import com.modeling.GatherDataModel;
+import com.modeling.ModelingResult;
 import com.modeling.PlanningType;
+import com.mxgraph.view.mxGraph;
 
 /**
  * Created by Andrii Mozharovskyi on 28.05.2015.
@@ -32,6 +37,15 @@ import com.modeling.PlanningType;
 public class GantDiagram extends JPanel {
     static Map<String, ArrayList<NodeAction>> model;
     private JTabbedPane tabPane;
+
+    private int min;
+    private int max;
+    private int count;
+    private double connMin;
+    private double connMax;
+    private double connStep;
+    private int repeats;
+    private String factor;
 
     public GantDiagram(JTabbedPane tabPane) {
         model = new HashMap<>();
@@ -44,36 +58,266 @@ public class GantDiagram extends JPanel {
             }
         });
         add(configButton);
+
+        JButton modellingButton = new JButton("Modelling");
+        modellingButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                initModellingControls();
+            }
+        });
+        add(modellingButton);
     }
 
     public void init(){
-        drawModel(generate(), true);
+        drawModel(generate(TaskGraph.graph, SystemGraph.graph), true);
     }
 
-    public static TaskPlanner generate(){
+    public static TaskPlanner generate(mxGraph taskGraph, mxGraph systemGraph){
         List<Task> tasks = new ArrayList<>();
         switch(Config.queueType) {
             case CRITICAL:
-                tasks = AnalyzeManager.getCriticalPathOrderQueue(TaskGraph.graph);
+                tasks = AnalyzeManager.getCriticalPathOrderQueue(taskGraph);
                 break;
             case NORMAL_CRITICAL:
-                tasks = AnalyzeManager.getCriticalPathNormalizationOrderQueue(TaskGraph.graph);
+                tasks = AnalyzeManager.getCriticalPathNormalizationOrderQueue(taskGraph);
                 break;
             case RANDOM:
-                tasks = AnalyzeManager.getRandomOrderQueue(TaskGraph.graph);
+                tasks = AnalyzeManager.getRandomOrderQueue(taskGraph);
                 break;
             default:
-                tasks = AnalyzeManager.getRandomOrderQueue(TaskGraph.graph);
+                tasks = AnalyzeManager.getRandomOrderQueue(taskGraph);
         }
-        RoutingModel routingModel = new RoutingModel(SystemGraph.graph);
-        TaskModel tasksModel = new TaskModel(TaskGraph.graph, tasks);
+        RoutingModel routingModel = new RoutingModel(systemGraph);
+        TaskModel tasksModel = new TaskModel(taskGraph, tasks);
         TaskPlanner planner = new TaskPlanner(routingModel, tasksModel);
         return planner;
     }
 
-    public void initModelling(){
-        int numberOfPlanningTypes = 6;
-        List<PlanningType> planningTypes = new ArrayList<>();
+    public void initModellingControls(){
+
+        JSpinner minTaskWeight = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
+        JLabel minTaskWeightLabel = new JLabel("min", JLabel.TRAILING);
+        minTaskWeightLabel.setLabelFor(minTaskWeight);
+
+        JSpinner maxTaskWeight = new JSpinner(new SpinnerNumberModel(10, 1, 100, 1));
+        JLabel maxTaskWeightLabel = new JLabel("max", JLabel.TRAILING);
+        maxTaskWeightLabel.setLabelFor(maxTaskWeight);
+
+        JSpinner tskCountSpinner = new JSpinner(new SpinnerNumberModel(7, 7, 35, 7));
+        JLabel tskCountSpinnerLabel = new JLabel("кількість", JLabel.TRAILING);
+        tskCountSpinnerLabel.setLabelFor(tskCountSpinner);
+
+        JSpinner minConn = new JSpinner(new SpinnerNumberModel(0.1, 0.1, 1.0, 0.1));
+        JLabel minConnLabel = new JLabel("min", JLabel.TRAILING);
+        minConnLabel.setLabelFor(minConn);
+
+        JSpinner maxConn = new JSpinner(new SpinnerNumberModel(1.0, 0.1, 1.0, 0.1));
+        JLabel maxConnLabel = new JLabel("max", JLabel.TRAILING);
+        maxConnLabel.setLabelFor(maxConn);
+
+        JSpinner stepConn = new JSpinner(new SpinnerNumberModel(0.3, 0.1, 0.5, 0.1));
+        JLabel stepConnLabel = new JLabel("крок", JLabel.TRAILING);
+        stepConnLabel.setLabelFor(stepConn);
+
+        JSpinner numberOfRepeats = new JSpinner(new SpinnerNumberModel(1, 1, 50, 1));
+        JLabel numberOfRepeatsLabel = new JLabel("к-сть прогонів", JLabel.TRAILING);
+        numberOfRepeatsLabel.setLabelFor(numberOfRepeats);
+
+        String[] factorStrings = { "Speedup", "Effectiveness", "Time", "All" };
+        JComboBox factorList = new JComboBox(factorStrings);
+        factorList.setSelectedIndex(2);
+
+        JButton showTableButton = new JButton("Show Table");
+        showTableButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                min = (Integer) minTaskWeight.getValue();
+                max = (Integer) maxTaskWeight.getValue();
+                count = (Integer) tskCountSpinner.getValue();
+
+                connMin = (Double) minConn.getValue();
+                connMax = (Double) maxConn.getValue();
+                connStep = (Double) stepConn.getValue();
+
+                repeats = (Integer) numberOfRepeats.getValue();
+
+                factor = (String) factorList.getSelectedItem();
+
+                drawTable(evaluate(min, max, count, connMin, connMax, connStep, repeats));
+            }
+        });
+
+        JButton showGraphButton = new JButton("Show Graph");
+        showGraphButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                min = (Integer) minTaskWeight.getValue();
+                max = (Integer) maxTaskWeight.getValue();
+                count = (Integer) tskCountSpinner.getValue();
+
+                connMin = (Double) minConn.getValue();
+                connMax = (Double) maxConn.getValue();
+                connStep = (Double) stepConn.getValue();
+
+                repeats = (Integer) numberOfRepeats.getValue();
+
+                factor = (String) factorList.getSelectedItem();
+
+                drawGraph(evaluate(min, max, count, connMin, connMax, connStep, repeats));
+            }
+        });
+
+        JButton showBothButton = new JButton("Graph&Table");
+        showBothButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                min = (Integer) minTaskWeight.getValue();
+                max = (Integer) maxTaskWeight.getValue();
+                count = (Integer) tskCountSpinner.getValue();
+
+                connMin = (Double) minConn.getValue();
+                connMax = (Double) maxConn.getValue();
+                connStep = (Double) stepConn.getValue();
+
+                repeats = (Integer) numberOfRepeats.getValue();
+
+                factor = (String) factorList.getSelectedItem();
+
+                Map<Object, Map<Object, ModelingResult>> map = evaluate(min, max, count, connMin, connMax, connStep, repeats);
+                drawGraph(map);
+                drawTable(map);
+            }
+        });
+
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setPreferredSize(new Dimension(100, 200));
+
+        JPanel tasksPanel = new JPanel();
+        tasksPanel.add(new JLabel("Задачі:       "));
+        tasksPanel.add(minTaskWeightLabel);
+        tasksPanel.add(minTaskWeight);
+        tasksPanel.add(maxTaskWeightLabel);
+        tasksPanel.add(maxTaskWeight);
+        tasksPanel.add(tskCountSpinnerLabel);
+        tasksPanel.add(tskCountSpinner);
+        panel.add(tasksPanel);
+
+        JPanel connPanel = new JPanel();
+        connPanel.add(new JLabel("Звязність: "));
+        connPanel.add(minConnLabel);
+        connPanel.add(minConn);
+        connPanel.add(maxConnLabel);
+        connPanel.add(maxConn);
+        connPanel.add(stepConnLabel);
+        connPanel.add(stepConn);
+        panel.add(connPanel);
+
+        JPanel additionalPanel = new JPanel();
+        additionalPanel.add(numberOfRepeatsLabel);
+        additionalPanel.add(numberOfRepeats);
+        additionalPanel.add(new JLabel("Критерій"));
+        additionalPanel.add(factorList);
+        panel.add(additionalPanel);
+
+        JPanel controlsPanel = new JPanel();
+        controlsPanel.add(showGraphButton);
+        controlsPanel.add(showTableButton);
+        controlsPanel.add(showBothButton);
+        panel.add(controlsPanel);
+
+        moveToFrame(panel, "Налаштування для збору статистики", 400, 200);
+    }
+
+    public int getFactorId(String str){
+        Map<String, Integer> map = new TreeMap<>();
+        map.put("Speedup", 0);
+        map.put("Effectiveness", 1);
+        map.put("Time", 2);
+        return map.get(str);
+    }
+
+    public Map<Object, Map<Object, ModelingResult>> evaluate(int min, int max, int count, double connMin, double connMax,
+                         double connStep, int repeats){
+//        Map<Object, Map<Object, ModelingResult>> map = new GatherDataModel()
+//                .planAlgorithms(min, max, count, connMin, connMax, connStep, repeats);
+//        Map<Object, Map<Object, ModelingResult>> map = new GatherDataModel()
+//                .planPhisLinks(min, max, count, connMin, connMax, connStep, repeats);
+        Map<Object, Map<Object, ModelingResult>> map = new GatherDataModel()
+                .planIO(min, max, count, connMin, connMax, connStep, repeats);
+        return map;
+    }
+
+    public void drawTable(Map<Object, Map<Object, ModelingResult>> map) {
+        int speed = 0;
+        int eff = 1;
+        int time = 2;
+
+        String header = count+" задач, " + repeats + " прогонів";
+
+        switch(factor) {
+            case "Speedup":
+                moveToFrame(new DrawTable(toDoublesMap(map, speed), 2, header), "Speedup", 900, 800);
+                break;
+            case "Effectiveness":
+                moveToFrame(new DrawTable(toDoublesMap(map, eff), 1, header), "Effectiveness", 900, 800);
+                break;
+            case "Time":
+                moveToFrame(new DrawTable(toDoublesMap(map, time), 1, header), "Time", 900, 800);
+                break;
+            case "All":
+                moveToFrame(new DrawTable(toDoublesMap(map, speed), 2, header), "Speedup", 900, 800);
+                moveToFrame(new DrawTable(toDoublesMap(map, eff), 1, header), "Effectiveness", 900, 800);
+                moveToFrame(new DrawTable(toDoublesMap(map, time), 1, header), "Time", 900, 800);
+        }
+    }
+
+    public void drawGraph(Map<Object, Map<Object, ModelingResult>> map) {
+        int speed = 0;
+        int eff = 1;
+        int time = 2;
+
+        String header = count+" задач, " + repeats + " прогонів";
+
+        switch(factor) {
+            case "Speedup":
+                moveToFrame(new DrawGraph(toDoublesMap(map, speed), 2, header), "Speedup", 900, 800);
+                break;
+            case "Effectiveness":
+                moveToFrame(new DrawGraph(toDoublesMap(map, eff), 1, header), "Effectiveness", 900, 800);
+                break;
+            case "Time":
+                moveToFrame(new DrawGraph(toDoublesMap(map, time), 1, header), "Time", 900, 800);
+                break;
+            case "All":
+                moveToFrame(new DrawGraph(toDoublesMap(map, speed), 2, header), "Speedup", 900, 800);
+                moveToFrame(new DrawGraph(toDoublesMap(map, eff), 1, header), "Effectiveness", 900, 800);
+                moveToFrame(new DrawGraph(toDoublesMap(map, time), 1, header), "Time", 900, 800);
+        }
+    }
+
+    private Map<Object, Map<Object, Double>> toDoublesMap(Map<Object, Map<Object, ModelingResult>> map, int param){
+        Map<Object, Map<Object, Double>> newMap = new TreeMap<>();
+
+        for(Map.Entry<Object, Map<Object, ModelingResult>> entry : map.entrySet()){
+
+            Map<Object, Double> innerNewMap = new TreeMap<>();
+
+            for(Map.Entry<Object, ModelingResult> innerEntry : entry.getValue().entrySet()){
+                Double value = 0.0;
+                switch(param) {
+                    case 0:
+                        value = innerEntry.getValue().getSpeedup();
+                        break;
+                    case 1:
+                        value = innerEntry.getValue().getEffectiveness();
+                        break;
+                    case 2:
+                        value = innerEntry.getValue().getTime();
+                }
+                innerNewMap.put(innerEntry.getKey(), value);
+            }
+
+            newMap.put(entry.getKey(), innerNewMap);
+
+        }
+        return newMap;
     }
 
     public void initControls(){

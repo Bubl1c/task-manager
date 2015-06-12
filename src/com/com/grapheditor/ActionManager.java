@@ -105,7 +105,7 @@ public class ActionManager {
         taskGraph.graph = graph;
     }
 
-    public static mxGraph generateGraph(int min, int max, int count, double connectivity){
+    public static mxGraph generateGraph(int minWeight, int maxWeight, int count, double connectivity){
         Random rand = new Random();
 
         mxGraph graph = new mxGraph();
@@ -114,8 +114,8 @@ public class ActionManager {
         int sumaWi = 0;
         ArrayList<mxCell> vertexWeightsList = new ArrayList<mxCell>();
         for(int i=0; i<count; i++){
-            int randValue = rand.nextInt(max+1);
-            if( randValue < min ){ randValue=min; }
+            int randValue = rand.nextInt(maxWeight+1);
+            if( randValue < minWeight ){ randValue=minWeight; }
             sumaWi += randValue;
             mxCell cell = (mxCell)graph.insertVertex(graph.getDefaultParent(), null, "", 0, 0, 50,50,"TASK_CELL_STYLE");
             cell.setValue((Integer.parseInt(cell.getId())-1)+TaskGraph.VERTEX_VALUES_SEPARATOR+randValue);

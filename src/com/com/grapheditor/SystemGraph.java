@@ -86,7 +86,7 @@ public class SystemGraph extends JPanel {
         systemgraph.add(graphPanel, BorderLayout.CENTER);
 
         buildGraphEnvironment();
-        //ActionManager.openFile(new File("E:\\nodes.mxe"), graph);
+        ActionManager.openFile(new File("E:\\course_system.mxe"), graph);
     }
 
     public static void buildGraphEnvironment() {
