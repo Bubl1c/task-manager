@@ -212,6 +212,8 @@ public class TaskPlanner {
     private int getMostSuitableNodeIdToTransferTo(int taskId, int ticNumber){
         if(Config.assignmentType == Config.AssignmentType.NEIGHBOR_5){
             return getBy5Algorithm(taskId, ticNumber);
+        } else if(Config.assignmentType == Config.AssignmentType.NEIGHBOR_7){
+            return getBy7Algorithm(taskId, ticNumber);
         }
         return getFreeRandomNodeId(taskModel.getTask(taskId), ticNumber);
     }
@@ -227,7 +229,7 @@ public class TaskPlanner {
                     shortestRoutesParents.add(new ObjectWeight(getTimeToFree(task, freeNodeId, ticNumber),
                             new Route(parentTaskProcessedNodeId, parentTaskProcessedNodeId)));
                 } else {
-                    Route shortestRoute = getShortestRouteFromNodeToNode(parentTaskProcessedNodeId, freeNodeId, ticNumber);
+                    Route shortestRoute = getShortestRouteFromNodeToNode(parentTaskProcessedNodeId, freeNodeId);
                     if(shortestRoute != null){
                         shortestRoutesParents.add(new ObjectWeight(shortestRoute.size() * taskModel.getLinkBetween(parentTaskId,
                                 taskId).getWeight(), shortestRoute));
@@ -242,6 +244,34 @@ public class TaskPlanner {
         }
         return shortestRoutesFreeNodes.peek() != null ? (Integer) shortestRoutesFreeNodes.peek().getObject() : -1;
     }
+
+    private int getBy7Algorithm(int taskId, int ticNumber){
+        Queue<ObjectWeight> shortestRoutesNodes = new PriorityQueue<>(ObjectWeight.getComparator());
+        Task task = taskModel.getTask(taskId);
+        for(int nodeId : routingModel.getNodeIds()){
+            Queue<ObjectWeight> shortestRoutesParents = new PriorityQueue<>(ObjectWeight.getComparator());
+            for(int parentTaskId : taskModel.getParentTaskIds(taskId)){
+                int parentTaskProcessedNodeId = taskModel.getTask(parentTaskId).getProcessedBy();
+                if(parentTaskProcessedNodeId == nodeId){
+                    shortestRoutesParents.add(new ObjectWeight(getTimeToFree(task, nodeId, ticNumber),
+                            new Route(parentTaskProcessedNodeId, parentTaskProcessedNodeId)));
+                } else {
+                    Link linkBetweenParentAndChildTasks = taskModel.getLinkBetween(parentTaskId, taskId);
+                    Route shortestRoute = getShortestRouteFromNodeToNodeDependingOnCurrentModelState(parentTaskProcessedNodeId, nodeId,
+                            linkBetweenParentAndChildTasks.getWeight(), ticNumber);
+                    if(shortestRoute != null){
+                        shortestRoutesParents.add(new ObjectWeight(shortestRoute.size() * linkBetweenParentAndChildTasks.getWeight(), shortestRoute));
+                    }
+                }
+            }
+            int sumWeight = 0;
+            for(ObjectWeight objectWeight : shortestRoutesParents){
+                sumWeight += objectWeight.getWeight();
+            }
+            shortestRoutesNodes.add(new ObjectWeight(sumWeight, nodeId));
+        }
+        return shortestRoutesNodes.peek() != null ? (Integer) shortestRoutesNodes.peek().getObject() : -1;
+    }
     
     private int getTimeToFree(Plannable work, int nodeId, int startTicNumber){
         NodeWorkflow workflow = getWorkflow(nodeId);
@@ -255,7 +285,7 @@ public class TaskPlanner {
         return currentTicNumber - startTicNumber;
     }
 
-    private Route getShortestRouteFromNodeToNode(int sourceNodeId, int targetNodeId, int startTicNumber){
+    private Route getShortestRouteFromNodeToNode(int sourceNodeId, int targetNodeId){
         Node sourceNode = routingModel.get(sourceNodeId);
         Queue<ObjectWeight> routeWeights = new PriorityQueue<>(ObjectWeight.getComparator());
         for(Route route : sourceNode.getRoutes()){

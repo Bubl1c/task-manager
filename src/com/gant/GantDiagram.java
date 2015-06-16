@@ -365,17 +365,20 @@ public class GantDiagram extends JPanel {
         final DefaultComboBoxModel assignmentType = new DefaultComboBoxModel();
         assignmentType.addElement("Random");
         assignmentType.addElement("Neighbor 5");
+        assignmentType.addElement("Neighbor 7");
         final JComboBox assignmentTypeCombo = new JComboBox(assignmentType);
         assignmentTypeCombo.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 if(assignmentTypeCombo.getSelectedIndex() == 0) {
                     Config.assignmentType = Config.AssignmentType.RANDOM;
-                } else {
+                } else if(assignmentTypeCombo.getSelectedIndex() == 1){
                     Config.assignmentType = Config.AssignmentType.NEIGHBOR_5;
+                } else {
+                    Config.assignmentType = Config.AssignmentType.NEIGHBOR_7;
                 }
             }
         });
-        assignmentTypeCombo.setSelectedIndex(1);
+        assignmentTypeCombo.setSelectedIndex(2);
 
 
         SpinnerModel model = new SpinnerNumberModel(1, 1, 5, 1);

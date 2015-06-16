@@ -40,6 +40,7 @@ public class Config {
 
     public static enum AssignmentType {
         NEIGHBOR_5(5),
+        NEIGHBOR_7(7),
         RANDOM(1);
 
         private final int id;
