@@ -358,7 +358,8 @@ public class TaskPlanner {
     }
 
     private Integer getMostSuitableFreeNodeId(Plannable work){
-        if(Config.assignmentType == Config.AssignmentType.NEIGHBOR_5) {
+        if(Config.assignmentType == Config.AssignmentType.NEIGHBOR_5
+                || Config.assignmentType == Config.AssignmentType.NEIGHBOR_7) {
             return getFreeMostConnectiveNodeId(work, currentTic);
         }
         return getFreeRandomNodeId(work, currentTic);
@@ -369,7 +370,7 @@ public class TaskPlanner {
         Collections.sort(freeNodeIds, new Comparator<Integer>() {
             @Override
             public int compare(Integer o1, Integer o2) {
-                return nodesConnectivityOrder.get(o2) - nodesConnectivityOrder.get(o1);
+                return nodesConnectivityOrder.get(o1) - nodesConnectivityOrder.get(o2);
             }
         });
         return freeNodeIds.size() == 0 ? -1 : freeNodeIds.get(0);
@@ -481,10 +482,10 @@ public class TaskPlanner {
         Queue<Node> nodesQueue = new PriorityQueue<>(new Comparator<Node>() {
             @Override
             public int compare(Node o1, Node o2) {
-                if((o1.getLinks().size() - o2.getLinks().size()) == 0){
-                    return o2.getId() - o1.getId();
+                if((o2.getLinks().size() - o1.getLinks().size()) == 0){
+                    return o1.getId() - o2.getId();
                 }
-                return o1.getLinks().size() - o2.getLinks().size();
+                return o2.getLinks().size() - o1.getLinks().size();
             }
         });
         for(int nodeId : nodeIds){
